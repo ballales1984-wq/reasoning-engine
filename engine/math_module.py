@@ -250,13 +250,28 @@ class MathModule:
         - "area cerchio raggio 5"
         """
         text = text.strip().lower()
-        numbers = [float(x) for x in re.findall(r'-?\d+\.?\d*', text)]
         
-        # Potenze
-        if "alla" in text and ("seconda" in text or "quadrato" in text or "2" in text):
-            return {"operation": "power", "numbers": [numbers[0], 2] if numbers else []}
-        if "alla" in text and ("terza" in text or "cubo" in text or "3" in text):
+        # Converti parole ordinali in numeri prima del parsing
+        ordinal_map = {
+            "prima": "1", "seconda": "2", "terza": "3", "quarta": "4",
+            "quinta": "5", "sesta": "6", "settima": "7", "ottava": "8",
+            "nona": "9", "decima": "10",
+        }
+        text_for_numbers = text
+        for word, num in ordinal_map.items():
+            text_for_numbers = text_for_numbers.replace(word, num)
+        
+        numbers = [float(x) for x in re.findall(r'-?\d+\.?\d*', text_for_numbers)]
+        
+        # Potenze — controlla parole specifiche PRIMA dei numeri generici
+        if "alla" in text and ("terza" in text or "cubo" in text):
             return {"operation": "power", "numbers": [numbers[0], 3] if numbers else []}
+        if "alla" in text and ("seconda" in text or "quadrato" in text):
+            return {"operation": "power", "numbers": [numbers[0], 2] if numbers else []}
+        if "alla" in text and ("quarta" in text):
+            return {"operation": "power", "numbers": [numbers[0], 4] if numbers else []}
+        if "alla" in text and ("quinta" in text):
+            return {"operation": "power", "numbers": [numbers[0], 5] if numbers else []}
         if "^" in text or "elevato" in text:
             return {"operation": "power", "numbers": numbers}
         
