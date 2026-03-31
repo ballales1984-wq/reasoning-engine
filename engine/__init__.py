@@ -13,6 +13,7 @@ from .learner import Learner
 from .verifier import Verifier
 from .explainer import Explainer
 from .math_module import MathModule
+from .nlp_parser import parse, ParsedQuery, Entity
 
 
 class ReasoningEngine:
@@ -85,8 +86,19 @@ class ReasoningEngine:
             else:
                 steps.append(f"❓ Non conosco '{entity}' — devo impararlo")
         
-        # Step 3: Prova a risolvere con le regole
+        # Step 3: Prova a risolvere con le regole base
         result = self.rules.apply(parsed, known_concepts)
+        
+        # Se le regole base non bastano, prova il MathModule
+        if result is None and parsed.get("operation") not in ("unknown", "lookup"):
+            math_result = self.math.solve(question)
+            if math_result and math_result.get("answer") is not None:
+                result = {
+                    "answer": math_result["answer"],
+                    "rule_used": parsed.get("operation", "math"),
+                    "confidence": 1.0,
+                    "explanation": math_result.get("explanation", "")
+                }
         
         if result is not None:
             steps.append(f"⚙️ Ho applicato la regola: {result['rule_used']}")
@@ -126,74 +138,19 @@ class ReasoningEngine:
     
     def _parse_question(self, question: str) -> dict:
         """
-        Analizza la domanda per capire:
-        - intent: cosa vuole sapere (calcolo, definizione, etc.)
-        - entities: gli oggetti coinvolti (numeri, concetti)
-        - operation: l'operazione richiesta
+        Analizza la domanda usando il NLP Parser.
         """
-        question = question.strip().lower()
+        parsed = parse(question)
         
-        # Rileva operazioni matematiche
-        if "quanto fa" in question or "calcola" in question:
-            # Estrai numeri e operazione
-            import re
-            numbers = [int(x) for x in re.findall(r'\d+', question)]
-            
-            if "+" in question or "più" in question or "somma" in question:
-                return {
-                    "intent": "calcolo",
-                    "operation": "addition",
-                    "entities": [str(n) for n in numbers],
-                    "numbers": numbers
-                }
-            elif "-" in question or "meno" in question:
-                return {
-                    "intent": "calcolo",
-                    "operation": "subtraction",
-                    "entities": [str(n) for n in numbers],
-                    "numbers": numbers
-                }
-            elif "×" in question or "per" in question and "volte" in question:
-                return {
-                    "intent": "calcolo",
-                    "operation": "multiplication",
-                    "entities": [str(n) for n in numbers],
-                    "numbers": numbers
-                }
-            elif "÷" in question or "diviso" in question:
-                return {
-                    "intent": "calcolo",
-                    "operation": "division",
-                    "entities": [str(n) for n in numbers],
-                    "numbers": numbers
-                }
-            
-            return {
-                "intent": "calcolo",
-                "operation": "unknown",
-                "entities": [str(n) for n in numbers],
-                "numbers": numbers
-            }
-        
-        # Rileva definizioni
-        if "cosa è" in question or "cos'è" in question or "definisci" in question:
-            import re
-            # Estrai la parola dopo "cosa è"
-            match = re.search(r"cos['']è\s+(\w+)|cosa\s+è\s+(\w+)|definisci\s+(\w+)", question)
-            concept = match.group(1) or match.group(2) or match.group(3) if match else question
-            return {
-                "intent": "definizione",
-                "operation": "lookup",
-                "entities": [concept],
-                "numbers": []
-            }
-        
-        # Default
         return {
-            "intent": "sconosciuto",
-            "operation": "unknown",
-            "entities": question.split(),
-            "numbers": []
+            "intent": parsed.intent,
+            "operation": parsed.operation,
+            "entities": [e.name for e in parsed.entities],
+            "numbers": parsed.nlp_numbers if hasattr(parsed, 'nlp_numbers') else parsed.numbers,
+            "operators": parsed.operators,
+            "relations": parsed.relations,
+            "confidence": parsed.confidence,
+            "_parsed": parsed  # Mantiene l'oggetto completo per usi futuri
         }
     
     def explain_concept(self, concept: str) -> str:
