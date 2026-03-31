@@ -95,6 +95,8 @@ def main():
     def test_analogical():
         engine.learn('sole', examples=[], description='stella', category='astronomia')
         engine.learn('nucleo', examples=[], description='centro atomo', category='fisica')
+        engine.learn('sistema_solare', examples=[], description='sole con pianeti', category='astronomia')
+        engine.learn('atomo', examples=[], description='nucleo con elettroni', category='fisica')
         engine.knowledge.connect('sistema_solare', 'ha_parte', 'sole')
         engine.knowledge.connect('atomo', 'ha_parte', 'nucleo')
         result = engine.analogical.find_analogies('sistema_solare')
@@ -149,13 +151,15 @@ def main():
     print("🗣️ NLP")
     
     def test_nlp_math():
-        parsed = engine.nlp_parser.parse("quanto fa 5 + 3")
+        from engine.nlp_parser import parse
+        parsed = parse("quanto fa 5 + 3")
         return parsed.intent == "calculate"
     total += 1
     if run_test("Parsing matematico", test_nlp_math): passed += 1
     
     def test_nlp_define():
-        parsed = engine.nlp_parser.parse("cos'è un atomo?")
+        from engine.nlp_parser import parse
+        parsed = parse("cos'è un atomo?")
         return parsed.intent == "define"
     total += 1
     if run_test("Parsing definizione", test_nlp_define): passed += 1
