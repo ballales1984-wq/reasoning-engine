@@ -89,6 +89,7 @@ class DeductiveReasoner:
         """
         Cerca di dedurre se subject ha la proprietà target.
         Usa forward chaining fino a max_depth.
+        Cerca sia match diretti che valori dentro relazioni (es. ha_caratteristica → ha_pelo).
         """
         if visited is None:
             visited = set()
@@ -97,20 +98,19 @@ class DeductiveReasoner:
             return DeductionResult(found=False)
 
         visited.add(subject)
-        chain = []
         concept = self.knowledge.get(subject)
 
         if not concept:
             return DeductionResult(found=False)
 
-        # Check diretto: subject ha direttamente la proprietà target?
+        # Check 1: subject ha direttamente target come valore di qualunque relazione
         for rel_type, targets in concept.relations.items():
             if target in targets:
                 step = DeductionStep(
                     rule_type="direct",
                     premise1=f"{subject} {rel_type} {target}",
                     premise2="",
-                    conclusion=f"{subject} ha proprietà {target}",
+                    conclusion=f"{subject} ha {target}",
                     confidence=1.0
                 )
                 return DeductionResult(
@@ -121,18 +121,17 @@ class DeductiveReasoner:
                     steps_count=1
                 )
 
-        # Sillogismo: se tutti gli X sono Y, e Y ha proprietà P, allora X ha proprietà P
+        # Check 2: ereditarietà — cerca nei parent (transitive relations)
         for rel_type, targets in concept.relations.items():
             if rel_type in self.TRANSITIVE_RELATIONS:
                 for intermediate in targets:
-                    # Prova a dedurre: intermediate → target
                     sub_result = self._deduce_to_target(intermediate, target, depth + 1, visited.copy())
                     if sub_result.found:
                         step = DeductionStep(
                             rule_type="syllogism",
                             premise1=f"{subject} {rel_type} {intermediate}",
-                            premise2=f"{intermediate} → {target}",
-                            conclusion=f"{subject} → {target}",
+                            premise2=f"{intermediate} ha {target}",
+                            conclusion=f"{subject} ha {target} (ereditato)",
                             confidence=sub_result.confidence * 0.95
                         )
                         return DeductionResult(

@@ -139,8 +139,11 @@ INTENT_PATTERNS = {
         r"verifica",
         r"[èe] giusto",
         r"è (vero|falso)",
-        r"(il|la|i|le)\s+\w+\s+[èe]\s+(?:un[ao]?\s+)\w+\?",
-        r"(il|la)\s+\w+\s+ha\s+\w+\?",
+        r"(il|la|i|le)\s+\w+\s+[èe]\s+(?:un[ao]?\s+)\w+\?",  # il gatto è un animale?
+        r"(il|la)\s+\w+\s+ha\s+\w+\?",                        # il cane ha pelo?
+        r"(il|la)\s+\w+\s+fa\s+",                               # il gatto fa le fusa?
+        r"(il|la)\s+\w+\s+(allatta|vola|nuota|corre|abbaia|miagola|canta)\??",  # il cane allatta?
+        r"(il|la)\s+\w+\s+si\s+(muove|trova|comporta)\??",     # il cane si muove?
     ],
     "learn": [
         r"^il \w+ [èe]",
@@ -276,26 +279,36 @@ def extract_operators(text: str) -> list[str]:
 
 def extract_relations(text: str) -> list[tuple[str, str, str]]:
     """Estrae relazioni dal testo. Ritorna [(soggetto, relazione, oggetto)]."""
+    import re
     relations = []
-    text_lower = text.lower()
+    text_lower = text.lower().strip()
+    text_lower = re.sub(r'\?$', '', text_lower)  # rimuovi ? finale
+
+    # Articoli da rimuovere dai match
+    articles = r'(?:il |la |i |le |lo |un |una )?'
 
     # Pattern di relazione
     relation_patterns = [
-        (r'(\w+)\s+[èe]\s+(?:un[ao]?\s+)?(\w+)', 'è_un'),
-        (r'(\w+)\s+ha\s+(?:il\s+|la\s+|i\s+|le\s+)?(\w+)', 'ha'),
-        (r'(\w+)\s+è\s+(\w+)\s+di\s+(\w+)', 'è_di'),
+        (r'(\w+)\s+[èe]\s+' + articles + r'(\w+)', 'è_un'),
+        (r'(\w+)\s+ha\s+' + articles + r'(\w+)', 'ha_caratteristica'),
+        (r'(\w+)\s+[èe]\s+(\w+)\s+di\s+(\w+)', 'è_di'),
         (r'(\w+)\s+(?:sta|si trova)\s+(?:in|a|dentro|sopra|sotto)\s+(\w+)', 'si_trova'),
         (r'(\w+)\s+(?:causa|provoca|genera)\s+(\w+)', 'causa'),
-        (r'(\w+)\s+(?:è simile a|assomiglia a)\s+(\w+)', 'simile_a'),
+        (r'(\w+)\s+(?:[èe] simile a|assomiglia a)\s+(\w+)', 'simile_a'),
+        (r'(\w+)\s+fa\s+(?:il\s+|la\s+|i\s+|le\s+)?(.+)', 'fa'),
+        (r'(\w+)\s+(allatta|vola|nuota|corre|abbaia|miagola|canta)', 'ha_caratteristica'),
+        (r'(\w+)\s+si\s+(muove|trova|comporta)', 'ha_caratteristica_si'),
     ]
 
     for pattern, rel_type in relation_patterns:
         for match in re.finditer(pattern, text_lower):
             groups = match.groups()
-            if len(groups) == 2:
-                relations.append((groups[0], rel_type, groups[1]))
-            elif len(groups) == 3:
-                relations.append((groups[0], rel_type, f"{groups[1]} di {groups[2]}"))
+            if len(groups) >= 2:
+                subj = groups[0]
+                obj = groups[1].strip().rstrip('?')
+                # Salta se soggetto o oggetto sono articoli/stop words
+                if subj not in STOP_WORDS_IT and len(subj) > 1:
+                    relations.append((subj, rel_type, obj))
 
     return relations
 

@@ -115,8 +115,63 @@ class ReasoningEngine:
         # Step 3b: Ragionamento deduttivo (solo verify, non define)
         if result is None and parsed.get("intent") == "verify":
             entities = parsed.get("entities", [])
-            # Se abbiamo 2 entità, deduci la relazione tra loro
-            if len(entities) >= 2:
+            parsed_relations = parsed.get("relations", [])
+            
+            # Prova prima con le relazioni estratte dal parser
+            deduction_target = None
+            if parsed_relations:
+                subj, rel, obj = parsed_relations[0]
+                # Per "X ha Y" → cerca "ha_Y" come proprietà nella gerarchia
+                if rel == "ha_caratteristica":
+                    deduction_target = f"ha_{obj}"
+                elif rel == "ha_caratteristica_si":
+                    deduction_target = f"si_{obj}"
+                else:
+                    deduction_target = obj
+                # Rimuovi articoli dal soggetto
+                import re
+                subj = re.sub(r'^(il|la|i|le|lo|un|una)\s+', '', subj)
+                entities = [subj] + [e for e in entities if e != subj]
+            
+            # Se abbiamo 2 entità o un target, deduci la relazione
+            if deduction_target and entities:
+                deduction = self.deductive.deduce(entities[0], deduction_target)
+                if deduction.found:
+                    if parsed_relations and parsed_relations[0][1] == "ha_caratteristica":
+                        answer_text = f"Sì, {entities[0]} ha {parsed_relations[0][2]}"
+                    else:
+                        answer_text = f"Sì, {entities[0]} → {deduction_target}"
+                    result = {
+                        "answer": answer_text,
+                        "rule_used": "deduction",
+                        "confidence": deduction.confidence,
+                        "explanation": f"Deduzione: {answer_text} ({deduction.steps_count} passi)"
+                    }
+                    steps.append(f"🔍 Deduzione: {entities[0]} → {deduction_target}")
+                    for step in deduction.chain:
+                        steps.append(f"   → {step.rule_type}: {step.conclusion}")
+                else:
+                    # Prova anche con il nome semplice (senza "ha_")
+                    deduction = self.deductive.deduce(entities[0], deduction_target.replace("ha_", ""))
+                    if deduction.found:
+                        result = {
+                            "answer": f"Sì, {entities[0]} → {deduction_target}",
+                            "rule_used": "deduction",
+                            "confidence": deduction.confidence,
+                            "explanation": f"Deduzione: {entities[0]} → {deduction_target} ({deduction.steps_count} passi)"
+                        }
+                        steps.append(f"🔍 Deduzione: {entities[0]} → {deduction_target}")
+                        for step in deduction.chain:
+                            steps.append(f"   → {step.rule_type}: {step.conclusion}")
+                    else:
+                        result = {
+                            "answer": f"No, non posso dedurre che {entities[0]} ha {parsed_relations[0][2] if parsed_relations else deduction_target}",
+                            "rule_used": "deduction",
+                            "confidence": 0.5,
+                            "explanation": f"Non riesco a dedurre"
+                        }
+                        steps.append(f"❌ Non riesco a dedurre: {entities[0]} → {deduction_target}")
+            elif len(entities) >= 2:
                 deduction = self.deductive.deduce(entities[0], entities[1])
                 if deduction.found:
                     result = {
@@ -133,21 +188,9 @@ class ReasoningEngine:
                         "answer": f"No, non posso dedurre che {entities[0]} → {entities[1]}",
                         "rule_used": "deduction",
                         "confidence": 0.5,
-                        "explanation": f"Non riesco a dedurre {entities[0]} → {entities[1]}"
+                        "explanation": f"Non riesco a dedurre"
                     }
                     steps.append(f"❌ Non riesco a dedurre: {entities[0]} → {entities[1]}")
-            elif len(entities) == 1:
-                deduction = self.deductive.deduce(entities[0])
-                if deduction.found:
-                    result = {
-                        "answer": deduction.conclusion,
-                        "rule_used": "deduction",
-                        "confidence": deduction.confidence,
-                        "explanation": f"Deduzione: {deduction.conclusion} ({deduction.steps_count} passi)"
-                    }
-                    steps.append(f"🔍 Deduzione: {deduction.conclusion}")
-                    for step in deduction.chain:
-                        steps.append(f"   → {step.rule_type}: {step.conclusion}")
         
         # Step 3b2: Define intent — lookup nel KG, poi LLM
         if result is None and parsed.get("intent") == "define":
