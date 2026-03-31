@@ -18,7 +18,7 @@ from .deductive import DeductiveReasoner, DeductionResult
 from .inductive import InductiveReasoner, InductionResult
 from .analogical import AnalogicalReasoner, AnalogyResult
 from .llm_bridge import LLMBridge, LLMClient, LLMResponse, ExtractedFact
-from .persistence import Persistence
+from .persistence_old import Persistence
 
 
 class ReasoningEngine:
