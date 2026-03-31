@@ -17,6 +17,7 @@ from .nlp_parser import parse, ParsedQuery, Entity
 from .deductive import DeductiveReasoner, DeductionResult
 from .inductive import InductiveReasoner, InductionResult
 from .analogical import AnalogicalReasoner, AnalogyResult
+from .llm_bridge import LLMBridge, LLMClient, LLMResponse, ExtractedFact
 
 
 class ReasoningEngine:
@@ -32,7 +33,7 @@ class ReasoningEngine:
     6. Spiega il ragionamento
     """
     
-    def __init__(self):
+    def __init__(self, llm_api_key: str = None, llm_model: str = "gpt-4o-mini"):
         self.knowledge = KnowledgeGraph()
         self.rules = RuleEngine()
         self.learner = Learner(self.knowledge)
@@ -42,6 +43,10 @@ class ReasoningEngine:
         self.deductive = DeductiveReasoner(self.knowledge, self.rules)
         self.inductive = InductiveReasoner(self.knowledge, self.rules)
         self.analogical = AnalogicalReasoner(self.knowledge)
+
+        # LLM Bridge (opzionale)
+        llm_client = LLMClient(model=llm_model, api_key=llm_api_key)
+        self.llm = LLMBridge(llm_client, self.knowledge, self.verifier)
     
     def learn(self, concept: str, examples: list[str], 
               description: str = None, category: str = "general"):
@@ -106,8 +111,8 @@ class ReasoningEngine:
                     "explanation": math_result.get("explanation", "")
                 }
         
-        # Step 3b: Ragionamento deduttivo (se verify o define)
-        if result is None and parsed.get("intent") in ("verify", "define"):
+        # Step 3b: Ragionamento deduttivo (solo verify, non define)
+        if result is None and parsed.get("intent") == "verify":
             entities = parsed.get("entities", [])
             # Se abbiamo 2 entità, deduci la relazione tra loro
             if len(entities) >= 2:
@@ -142,6 +147,47 @@ class ReasoningEngine:
                     steps.append(f"🔍 Deduzione: {deduction.conclusion}")
                     for step in deduction.chain:
                         steps.append(f"   → {step.rule_type}: {step.conclusion}")
+        
+        # Step 3b2: Define intent — lookup nel KG, poi LLM
+        if result is None and parsed.get("intent") == "define":
+            entities = parsed.get("entities", [])
+            # Rimuovi token di parsing spurii
+            real_entities = [e for e in entities if e not in ("cosa", "cos", "definisci", "che", "significato")]
+            if real_entities:
+                concept = real_entities[0]
+                known = self.knowledge.get(concept)
+                if known and known.description:
+                    result = {
+                        "answer": known.description,
+                        "rule_used": "lookup",
+                        "confidence": 0.95,
+                        "explanation": f"{concept}: {known.description}"
+                    }
+                    steps.append(f"🧠 Trovato nel KG: {concept} = {known.description}")
+                elif use_llm and self.llm.is_available():
+                    llm_response = self.llm.provide_knowledge(concept)
+                    if llm_response.facts:
+                        for fact in llm_response.facts:
+                            if fact.relation == "descrizione":
+                                self.knowledge.add(concept, description=fact.value)
+                            elif fact.relation == "categoria":
+                                if concept in self.knowledge.concepts:
+                                    self.knowledge.concepts[concept].category = fact.value
+                            elif fact.relation == "ha_esempio":
+                                if concept in self.knowledge.concepts:
+                                    self.knowledge.concepts[concept].examples.append(fact.value)
+                            else:
+                                self.knowledge.connect(concept, fact.relation, fact.value)
+                        known_now = self.knowledge.get(concept)
+                        result = {
+                            "answer": known_now.description if known_now else str(llm_response.facts[0].value),
+                            "rule_used": "llm_knowledge",
+                            "confidence": llm_response.confidence * 0.8,
+                            "explanation": f"Appreso dall'LLM ({len(llm_response.facts)} fatti)"
+                        }
+                        steps.append(f"📚 LLM ha insegnato: {concept} ({len(llm_response.facts)} fatti)")
+                elif use_llm:
+                    steps.append("⚠️ LLM non configurato")
         
         # Step 3c: Analogia (se explain e non ha trovato risposta)
         if result is None and parsed.get("intent") == "explain":
@@ -182,18 +228,67 @@ class ReasoningEngine:
             }
         
         # Se non riesce da solo, può chiedere all'LLM
-        if use_llm:
+        if use_llm and self.llm.is_available():
             steps.append("🤖 Chiedo all'LLM...")
-            # TODO: integrare LLM come fallback
-            steps.append("⚠️ LLM non ancora integrato")
-        
-        return {
-            "answer": None,
-            "steps": steps,
-            "confidence": 0.0,
-            "explanation": "Non riesco a risolvere questo problema con le regole che conosco.",
-            "verified": False
-        }
+
+            # Prima: prova a far imparare il concetto
+            entities = parsed.get("entities", [])
+            if entities and parsed.get("intent") in ("define", "explain", "general"):
+                llm_response = self.llm.provide_knowledge(entities[0])
+                if llm_response.facts:
+                    # Aggiungi al knowledge graph
+                    for fact in llm_response.facts:
+                        if fact.relation == "descrizione":
+                            self.knowledge.add(entities[0], description=fact.value)
+                        elif fact.relation == "categoria":
+                            if entities[0] in self.knowledge.concepts:
+                                self.knowledge.concepts[entities[0]].category = fact.value
+                        elif fact.relation == "ha_esempio":
+                            if entities[0] in self.knowledge.concepts:
+                                self.knowledge.concepts[entities[0]].examples.append(fact.value)
+                        else:
+                            self.knowledge.connect(entities[0], fact.relation, fact.value)
+
+                    steps.append(f"📚 Ho imparato da LLM: {len(llm_response.facts)} fatti su '{entities[0]}'")
+
+                    # Prova di nuovo a rispondere con la nuova conoscenza
+                    known = self.knowledge.get(entities[0])
+                    if known and known.description:
+                        result = {
+                            "answer": known.description,
+                            "rule_used": "llm_knowledge",
+                            "confidence": llm_response.confidence * 0.8,
+                            "explanation": f"Risposta basata su conoscenza LLM (verificata: {llm_response.verified})"
+                        }
+
+            # Se ancora niente, fallback solver
+            if result is None:
+                context = {
+                    "known_concepts": list(known_concepts.keys()) if known_concepts else [],
+                    "steps": steps
+                }
+                llm_response = self.llm.fallback_solve(question, context)
+                if llm_response.facts:
+                    best_fact = max(llm_response.facts, key=lambda f: f.confidence)
+                    result = {
+                        "answer": best_fact.value,
+                        "rule_used": "llm_fallback",
+                        "confidence": best_fact.confidence * 0.7,
+                        "explanation": f"Risposta LLM (non verificata internamente)"
+                    }
+                    steps.append(f"🤖 LLM risponde: {best_fact.value}")
+        elif use_llm:
+            steps.append("⚠️ LLM non configurato — impossibile fare fallback")
+
+        if result is None:
+            return {
+                "answer": None,
+                "steps": steps,
+                "confidence": 0.0,
+                "explanation": "Non riesco a risolvere questo problema con le regole che conosco.",
+                "verified": False,
+                "llm_used": False
+            }
     
     def _parse_question(self, question: str) -> dict:
         """
