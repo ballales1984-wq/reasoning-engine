@@ -63,8 +63,15 @@ class KnowledgeGraph:
         return self.concepts[name]
     
     def get(self, name: str) -> Concept | None:
-        """Recupera un concetto per nome."""
-        return self.concepts.get(name)
+        """Recupera un concetto per nome (case-insensitive)."""
+        if name in self.concepts:
+            return self.concepts[name]
+        # Case-insensitive fallback
+        name_lower = name.lower()
+        for key, concept in self.concepts.items():
+            if key.lower() == name_lower:
+                return concept
+        return None
     
     def find(self, names: list[str]) -> dict:
         """Cerca più concetti. Ritorna {name: Concept|None}."""

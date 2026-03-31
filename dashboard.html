@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🧠 ReasoningEngine</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: system-ui, sans-serif; background: #0a0a0a; color: #e0e0e0; padding: 20px; }
+h1 { font-size: 1.5em; margin-bottom: 20px; }
+.grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1200px; margin: 0 auto; }
+@media (max-width: 768px) { .grid { grid-template-columns: 1fr; } }
+.card { background: #1a1a1a; border-radius: 12px; padding: 20px; border: 1px solid #333; }
+.card h2 { font-size: 1.1em; margin-bottom: 12px; color: #7eb8ff; }
+input, textarea, button, select { width: 100%; padding: 10px; margin: 6px 0; border-radius: 8px; border: 1px solid #444; background: #222; color: #e0e0e0; font-size: 14px; }
+button { background: #2563eb; color: white; cursor: pointer; border: none; font-weight: bold; }
+button:hover { background: #1d4ed8; }
+button.secondary { background: #333; }
+button.danger { background: #dc2626; }
+.response { background: #111; border-radius: 8px; padding: 14px; margin-top: 10px; font-family: monospace; font-size: 13px; white-space: pre-wrap; max-height: 300px; overflow-y: auto; border: 1px solid #333; }
+.response .step { color: #888; }
+.response .answer { color: #4ade80; font-size: 16px; font-weight: bold; }
+.response .confidence { color: #fbbf24; }
+.response .verified { color: #4ade80; }
+.response .unverified { color: #f87171; }
+.stats { display: flex; gap: 15px; flex-wrap: wrap; margin-bottom: 15px; }
+.stat { background: #222; padding: 10px 16px; border-radius: 8px; }
+.stat .num { font-size: 1.4em; font-weight: bold; color: #7eb8ff; }
+.stat .label { font-size: 0.8em; color: #888; }
+.tag { display: inline-block; background: #333; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin: 2px; }
+.knowledge-list { max-height: 300px; overflow-y: auto; }
+.knowledge-item { padding: 8px; border-bottom: 1px solid #222; }
+.knowledge-item .name { font-weight: bold; color: #7eb8ff; }
+.knowledge-item .desc { color: #aaa; font-size: 13px; }
+.log-entry { padding: 6px 0; border-bottom: 1px solid #1a1a1a; font-size: 13px; }
+.log-entry .time { color: #666; }
+.log-entry .ok { color: #4ade80; }
+.log-entry .q { color: #7eb8ff; }
+</style>
+</head>
+<body>
+
+<div style="max-width:1200px; margin:0 auto;">
+<h1>🧠 ReasoningEngine — Dashboard</h1>
+
+<div class="stats" id="stats"></div>
+
+<div class="grid">
+
+  <!-- CHAT / REASON -->
+  <div class="card">
+    <h2>💬 Chiedi all'Engine</h2>
+    <input id="question" placeholder="quanto fa 15 + 27? oppure il gatto è un animale?" onkeydown="if(event.key==='Enter')doReason()">
+    <div style="display:flex;gap:8px;">
+      <button onclick="doReason()">🔍 Ragiona</button>
+      <button class="secondary" onclick="doReason(true)">🤖 + LLM</button>
+    </div>
+    <div class="response" id="response">Pronto...</div>
+  </div>
+
+  <!-- INSEGNAMENTO -->
+  <div class="card">
+    <h2>📚 Insegna</h2>
+    <input id="concept" placeholder="Nome concetto (es. elefante)">
+    <textarea id="description" rows="2" placeholder="Descrizione"></textarea>
+    <input id="examples" placeholder="Esempi (separati da virgola)">
+    <select id="category">
+      <option value="general">Generale</option>
+      <option value="biologia">Biologia</option>
+      <option value="fisica">Fisica</option>
+      <option value="matematica">Matematica</option>
+      <option value="chimica">Chimica</option>
+      <option value="informatica">Informatica</option>
+      <option value="geografia">Geografia</option>
+      <option value="storia">Storia</option>
+    </select>
+    <button onclick="doLearn()">📝 Insegna</button>
+    <div class="response" id="learnResult">Pronto...</div>
+  </div>
+
+  <!-- COLLEGAMENTO -->
+  <div class="card">
+    <h2>🔗 Collega Concetti</h2>
+    <input id="relSource" placeholder="Soggetto (es. gatto)">
+    <select id="relType">
+      <option value="è_un_tipo_di">è un tipo di</option>
+      <option value="ha_caratteristica">ha caratteristica</option>
+      <option value="ha_parte">ha parte</option>
+      <option value="contiene">contiene</option>
+      <option value="causa">causa</option>
+      <option value="simile_a">simile a</option>
+      <option value="serve_per">serve per</option>
+      <option value="si_trova_in">si trova in</option>
+    </select>
+    <input id="relTarget" placeholder="Oggetto (es. mammifero)">
+    <button onclick="doConnect()">🔗 Collega</button>
+    <div class="response" id="connectResult">Pronto...</div>
+  </div>
+
+  <!-- TESTO LIBERO -->
+  <div class="card">
+    <h2>📄 Insegna da Testo</h2>
+    <textarea id="bulkText" rows="5" placeholder="Incolla un testo e l'engine estrarrà concetti e relazioni...
+
+Esempio: Il DNA contiene geni. I geni determinano le proteine. Le proteine sono composte da amminoacidi."></textarea>
+    <button onclick="doEnrich()">📖 Estrai</button>
+    <div class="response" id="enrichResult">Pronto...</div>
+  </div>
+
+  <!-- CONOSCENZA -->
+  <div class="card">
+    <h2>🧠 Conoscenza</h2>
+    <input id="searchKnowledge" placeholder="Cerca..." oninput="filterKnowledge()">
+    <div class="knowledge-list" id="knowledgeList">Caricamento...</div>
+    <button class="secondary" onclick="loadKnowledge()">🔄 Aggiorna</button>
+  </div>
+
+  <!-- LOG -->
+  <div class="card">
+    <h2>📋 Log Interazioni</h2>
+    <div class="response" id="log" style="max-height:250px;">Nessuna interazione</div>
+  </div>
+
+</div>
+</div>
+
+<script>
+const API = ''; // same origin
+let allKnowledge = [];
+let logEntries = [];
+
+async function api(path, body=null) {
+  const opts = body ? {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)} : {};
+  const r = await fetch(API + path, opts);
+  return r.json();
+}
+
+// Health + Stats
+async function loadStats() {
+  const h = await api('/health');
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="num">${h.concepts}</div><div class="label">Concetti</div></div>
+    <div class="stat"><div class="num">${h.rules}</div><div class="label">Regole</div></div>
+    <div class="stat"><div class="num">${h.status}</div><div class="label">Stato</div></div>
+  `;
+}
+
+// Reason
+async function doReason(useLLM=false) {
+  const q = document.getElementById('question').value.trim();
+  if (!q) return;
+  const el = document.getElementById('response');
+  el.innerHTML = '<span style="color:#fbbf24">⏳ Ragionamento...</span>';
+
+  const r = await api('/reason', {question: q, use_llm: useLLM});
+
+  let html = '';
+  if (r.steps) {
+    for (const s of r.steps) html += `<div class="step">${s}</div>`;
+  }
+  html += `\n<div class="answer">💡 ${r.answer ?? 'N/A'}</div>`;
+  html += `<div class="confidence">📊 Confidenza: ${(r.confidence*100).toFixed(0)}%</div>`;
+  html += `<div class="${r.verified?'verified':'unverified'}">${r.verified?'✅ Verificato':'⚠️ Non verificato'}</div>`;
+  if (r.rule_used) html += `\n<div style="color:#888">🔧 ${r.rule_used}</div>`;
+  el.innerHTML = html;
+
+  addLog(q, r.answer, r.verified);
+  loadStats();
+}
+
+// Learn
+async function doLearn() {
+  const concept = document.getElementById('concept').value.trim();
+  const desc = document.getElementById('description').value.trim();
+  const ex = document.getElementById('examples').value.trim();
+  const cat = document.getElementById('category').value;
+  if (!concept) return;
+
+  const examples = ex ? ex.split(',').map(s=>s.trim()) : [];
+  const r = await api('/learn', {concept, description: desc, examples, category: cat});
+  document.getElementById('learnResult').innerHTML = `<div class="answer">✅ ${r.message}</div>`;
+
+  document.getElementById('concept').value = '';
+  document.getElementById('description').value = '';
+  document.getElementById('examples').value = '';
+  loadKnowledge();
+  loadStats();
+}
+
+// Connect
+async function doConnect() {
+  const source = document.getElementById('relSource').value.trim();
+  const rel = document.getElementById('relType').value;
+  const target = document.getElementById('relTarget').value.trim();
+  if (!source || !target) return;
+
+  const r = await api('/connect', {source, relation: rel, target});
+  document.getElementById('connectResult').innerHTML = `<div class="answer">✅ ${r.message}</div>`;
+
+  document.getElementById('relSource').value = '';
+  document.getElementById('relTarget').value = '';
+  loadKnowledge();
+}
+
+// Enrich from text
+async function doEnrich() {
+  const text = document.getElementById('bulkText').value.trim();
+  if (!text) return;
+
+  // Use reason endpoint with learn intent via direct learn calls
+  const sentences = text.split(/[.!;\n]+/).filter(s=>s.trim());
+  let added = 0;
+
+  for (const s of sentences) {
+    // Simple extraction: "X è Y" or "X ha Y" patterns
+    const match1 = s.match(/(\w+)\s+[èe]\s+(?:un[ao]?\s+)?(.+)/i);
+    const match2 = s.match(/(\w+)\s+ha\s+(?:il\s+|la\s+)?(.+)/i);
+    const match3 = s.match(/(\w+)\s+(?:contiene|comprende)\s+(.+)/i);
+
+    if (match1) {
+      await api('/learn', {concept: match1[1].trim(), description: match2?.[2]?.trim() || match1[2].trim()});
+      added++;
+    }
+    if (match2) {
+      await api('/connect', {source: match2[1].trim(), relation: 'ha', target: match2[2].trim()});
+      added++;
+    }
+    if (match3) {
+      await api('/connect', {source: match3[1].trim(), relation: 'contiene', target: match3[2].trim()});
+      added++;
+    }
+  }
+
+  document.getElementById('enrichResult').innerHTML = `<div class="answer">✅ ${added} elementi estratti da ${sentences.length} frasi</div>`;
+  loadKnowledge();
+  loadStats();
+}
+
+// Knowledge list
+async function loadKnowledge() {
+  const r = await api('/knowledge');
+  allKnowledge = r.concepts || [];
+  renderKnowledge(allKnowledge);
+}
+
+function renderKnowledge(list) {
+  const el = document.getElementById('knowledgeList');
+  el.innerHTML = list.map(c => `
+    <div class="knowledge-item">
+      <div class="name">${c.name} <span class="tag">${c.category}</span></div>
+      <div class="desc">${c.description || ''}</div>
+    </div>
+  `).join('') || 'Nessun concetto';
+}
+
+function filterKnowledge() {
+  const q = document.getElementById('searchKnowledge').value.toLowerCase();
+  const filtered = allKnowledge.filter(c =>
+    c.name.toLowerCase().includes(q) || (c.description||'').toLowerCase().includes(q)
+  );
+  renderKnowledge(filtered);
+}
+
+// Log
+function addLog(question, answer, verified) {
+  const time = new Date().toLocaleTimeString('it-IT');
+  logEntries.unshift({time, question, answer, verified});
+  if (logEntries.length > 50) logEntries.pop();
+  document.getElementById('log').innerHTML = logEntries.map(e =>
+    `<div class="log-entry"><span class="time">${e.time}</span> <span class="q">${e.question}</span> → <span class="${e.verified?'ok':''}">${e.answer ?? 'N/A'}</span></div>`
+  ).join('');
+}
+
+// Init
+loadStats();
+loadKnowledge();
+</script>
+</body>
+</html>

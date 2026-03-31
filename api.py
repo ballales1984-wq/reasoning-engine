@@ -92,6 +92,20 @@ class APIHandler(BaseHTTPRequestHandler):
         path = parsed.path.rstrip("/")
         engine = get_engine()
 
+        # Serve dashboard HTML
+        if path in ("/", "/index.html", ""):
+            dashboard_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "dashboard.html")
+            if os.path.exists(dashboard_path):
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self._cors_headers()
+                self.end_headers()
+                with open(dashboard_path, "rb") as f:
+                    self.wfile.write(f.read())
+            else:
+                self._error("Dashboard non trovata", 404)
+            return
+
         if path == "/health":
             info = engine.what_do_you_know()
             self._json_response({
