@@ -40,6 +40,12 @@ def get_engine(llm_key=None):
     global _engine
     if _engine is None:
         _engine = ReasoningEngine(llm_api_key=llm_key)
+        # Auto-load saved state
+        try:
+            _engine.load("api_state")
+            print("  📂 Stato precedente caricato")
+        except Exception:
+            pass
     return _engine
 
 
@@ -170,6 +176,7 @@ class APIHandler(BaseHTTPRequestHandler):
                 return
 
             engine.learn(concept, examples, description, category)
+            engine.save("api_state")  # auto-save
             self._json_response({
                 "status": "ok",
                 "message": f"Ho imparato: {concept}"
@@ -204,6 +211,7 @@ class APIHandler(BaseHTTPRequestHandler):
             engine.knowledge.add(source)
             engine.knowledge.add(target)
             engine.knowledge.connect(source, relation, target)
+            engine.save("api_state")  # auto-save
             self._json_response({
                 "status": "ok",
                 "message": f"Collegato: {source} → {relation} → {target}"

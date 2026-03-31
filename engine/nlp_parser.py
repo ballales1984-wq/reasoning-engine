@@ -215,9 +215,12 @@ def extract_concepts(text: str) -> list[str]:
     tokens = tokenize(text)
     concepts = []
 
+    # Parole spurie da rimuovere (artefatti di parsing)
+    spurious = {"cos", "che", "cosa", "qual", "quale", "significato", "definisci", "spiegami", "dimmi"}
+    
     for token in tokens:
-        # Salta numeri, stop words, noise
-        if token in STOP_WORDS_IT:
+        # Salta numeri, stop words, noise, parole spurie
+        if token in STOP_WORDS_IT or token in spurious:
             continue
         if token in NOISE_WORDS:
             continue
