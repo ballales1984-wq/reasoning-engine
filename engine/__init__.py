@@ -18,6 +18,7 @@ from .deductive import DeductiveReasoner, DeductionResult
 from .inductive import InductiveReasoner, InductionResult
 from .analogical import AnalogicalReasoner, AnalogyResult
 from .llm_bridge import LLMBridge, LLMClient, LLMResponse, ExtractedFact
+from .persistence import Persistence
 
 
 class ReasoningEngine:
@@ -340,3 +341,18 @@ class ReasoningEngine:
     def explain_analogy(self, source: str, target: str) -> str:
         """Spiega l'analogia tra due concetti."""
         return self.analogical.explain_analogy(source, target)
+
+    def save(self, name: str = "default", directory: str = None) -> str:
+        """Salva lo stato dell'engine su disco."""
+        p = Persistence(directory)
+        return p.save_engine(self, name)
+
+    def load(self, name: str = "default", directory: str = None) -> bool:
+        """Carica lo stato dell'engine da disco."""
+        p = Persistence(directory)
+        return p.load_engine(self, name)
+
+    def export_text(self) -> str:
+        """Esporta lo stato come testo leggibile."""
+        p = Persistence()
+        return p.export_text(self)
