@@ -1,0 +1,50 @@
+[
+  {
+    "input": "quanto fa 2 + 2?",
+    "expected_output": "4",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "quanto fa 3 * 3?",
+    "expected_output": "9",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "area cerchio raggio 1",
+    "expected_output": "3.14",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "ROI 1000 guadagno 1200",
+    "expected_output": "20%",
+    "category": "finance",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "interesse 1000 al 10% per 1 anno",
+    "expected_output": "100",
+    "category": "finance",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "quanto fa 5 + 5?",
+    "expected_output": "10",
+    "category": "feedback",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  }
+]
