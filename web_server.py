@@ -29,7 +29,7 @@ from engine.code_tool import CodeTool
 from engine.web_tool import WebTool
 
 engine = ReasoningEngine()
-ollama = OllamaTool(default_model="tinyllama")
+ollama = OllamaTool(default_model="gemma3:1b")
 finance = FinanceModule(engine.knowledge, engine.rules)
 code = CodeTool()
 web = WebTool()
@@ -465,9 +465,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # 5. Chiedi a Ollama
         if ollama.is_available():
-            ollama_result = ollama.generate(question)
-            if ollama_result.get("success") and ollama_result.get("response"):
-                return ollama_result["response"], "ollama"
+            try:
+                ollama_result = ollama.generate(question, timeout=30)
+                if ollama_result.get("success") and ollama_result.get("response"):
+                    return ollama_result["response"], "ollama"
+            except Exception:
+                pass
 
         # 6. Fallback
         return "Non so rispondere a questa domanda. Prova a riformulare.", "none"
