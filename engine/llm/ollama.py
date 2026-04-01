@@ -17,7 +17,7 @@ class OllamaTool:
     """Tool per Ollama (LLM locale)."""
 
     def __init__(
-        self, base_url: str = "http://localhost:11434", default_model: str = "llama3.2"
+        self, base_url: str = "http://localhost:11434", default_model: str = "gemma3:1b"
     ):
         self.base_url = base_url.rstrip("/")
         self.default_model = default_model
@@ -60,56 +60,62 @@ class OllamaTool:
         model: str = None,
         system: str = None,
         context: list = None,
-        timeout: int = 120,
+        timeout: int = 180,
     ) -> dict:
-        """
-        Genera una risposta usando Ollama.
-
-        Args:
-            prompt: il prompt
-            model: modello da usare (default: llama3.2)
-            system: system prompt opzionale
-            context: contesto conversazione
-        """
+        """Genera una risposta usando Ollama (Auto-detect GPU/CPU)."""
         model = model or self.default_model
-
         try:
-            payload = {"model": model, "prompt": prompt, "stream": False}
-
-            if system:
-                payload["system"] = system
-
-            if context:
-                payload["context"] = context
+            payload = {
+                "model": model, "prompt": prompt, "stream": False,
+                "options": {"num_thread": 8, "temperature": 0.3}
+            }
+            if system: payload["system"] = system
+            if context: payload["context"] = context
 
             data = json.dumps(payload).encode("utf-8")
-
             req = urllib.request.Request(
                 f"{self.base_url}/api/generate",
-                data=data,
-                headers={"Content-Type": "application/json"},
+                data=data, headers={"Content-Type": "application/json"}
             )
-
-            with urllib.request.urlopen(req, timeout=120) as response:
+            with urllib.request.urlopen(req, timeout=timeout) as response:
                 result = json.loads(response.read().decode())
 
-            # Salva nella history
+            answer = result.get("response", "")
             self.conversation_history.append({"role": "user", "content": prompt})
-            self.conversation_history.append(
-                {"role": "assistant", "content": result.get("response", "")}
-            )
+            self.conversation_history.append({"role": "assistant", "content": answer})
 
             return {
-                "success": True,
-                "response": result.get("response", ""),
-                "model": model,
+                "success": True, "response": answer, "model": model,
                 "eval_count": result.get("eval_count", 0),
                 "eval_duration": result.get("eval_duration", 0),
-                "context": result.get("context", []),
+                "context": result.get("context", [])
             }
-
         except Exception as e:
-            return {"success": False, "error": str(e), "response": None}
+            return {"success": False, "error": str(e), "response": "Errore Ollama"}
+
+    def generate_embedding(self, text: str, model: str = None) -> dict:
+        """Genera embedding usando Ollama con accelerazione GPU."""
+        model = model or "nomic-embed-text"
+        try:
+            payload = {
+                "model": model, "prompt": text,
+                "options": {"num_gpu": 1, "num_thread": 8}
+            }
+            data = json.dumps(payload).encode("utf-8")
+            req = urllib.request.Request(
+                f"{self.base_url}/api/embeddings",
+                data=data, headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, timeout=60) as response:
+                result = json.loads(response.read().decode())
+
+            return {
+                "success": True, 
+                "embedding": result.get("embedding", []),
+                "dimensions": len(result.get("embedding", []))
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e), "embedding": []}
 
     def chat(self, message: str, model: str = None) -> dict:
         """
