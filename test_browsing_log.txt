@@ -1,0 +1,30 @@
+EE
+======================================================================
+ERROR: test_01_direct_url_browsing (__main__.TestWebBrowsing.test_01_direct_url_browsing)
+Verifica che l'engine visiti un URL e ne estragga il contenuto.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\user\Downloads\reasoning-engine\test_browsing.py", line 15, in test_01_direct_url_browsing
+    print(f"\n\U0001f30d Test in corso su: {url}...")
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python314\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\U0001f30d' in position 2: character maps to <undefined>
+
+======================================================================
+ERROR: test_02_parsing_broken_url (__main__.TestWebBrowsing.test_02_parsing_broken_url)
+Verifica che l'engine gestisca URL non validi senza crashare.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\user\Downloads\reasoning-engine\test_browsing.py", line 33, in test_02_parsing_broken_url
+    res = self.engine.reason(f"Visita {url}")
+  File "C:\Users\user\Downloads\reasoning-engine\engine\__init__.py", line 114, in reason
+    urls = re.findall(r'https?://[^\s{}()\[\]]+', question)
+           ^^
+NameError: name 're' is not defined. Did you forget to import 're'?
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.181s
+
+FAILED (errors=2)

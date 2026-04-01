@@ -1,0 +1,23 @@
+E
+======================================================================
+ERROR: test_01_multi_agent_flow (__main__.TestMultiAgent.test_01_multi_agent_flow)
+Verifica il flusso completo tra gli agenti.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\user\Downloads\reasoning-engine\test_multi_agent.py", line 14, in test_01_multi_agent_flow
+    res = self.engine.reason(query)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\__init__.py", line 126, in reason
+    agent_res = self.agents.orchestrate(question, parsed_dict)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\agents\manager.py", line 39, in orchestrate
+    ana_output = self.analyst.process(input_data)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\agents\analyst.py", line 27, in process
+    all_text += f"{concept_name}: {concept.get_best_info()['description']}. "
+                                   ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'NoneType' object has no attribute 'get_best_info'
+
+----------------------------------------------------------------------
+Ran 1 test in 0.037s
+
+FAILED (errors=1)
+
+[Multi-Agent Test] Esecuzione per: 'Chi � l'attuale CEO di Apple?'

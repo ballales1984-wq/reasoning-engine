@@ -10,7 +10,7 @@
           "22/7 (approssimazione)"
         ],
         "category": "math/constants",
-        "last_updated": 1775070494.3117087,
+        "last_updated": 1775073238.5649862,
         "trust_score": 1.0
       }
     },
@@ -30,7 +30,7 @@
           "13"
         ],
         "category": "math/numbers",
-        "last_updated": 1775070494.311714,
+        "last_updated": 1775073238.5649922,
         "trust_score": 1.0
       }
     },
@@ -47,7 +47,7 @@
           "1/3 = 0.333..."
         ],
         "category": "math/fractions",
-        "last_updated": 1775070494.3117166,
+        "last_updated": 1775073238.5649958,
         "trust_score": 1.0
       }
     },
@@ -64,7 +64,7 @@
           "100% = tutto"
         ],
         "category": "math/percentages",
-        "last_updated": 1775070494.3117185,
+        "last_updated": 1775073238.5650005,
         "trust_score": 1.0
       }
     },
@@ -81,7 +81,7 @@
           "10² = 100"
         ],
         "category": "math/powers",
-        "last_updated": 1775070494.3117201,
+        "last_updated": 1775073238.5650039,
         "trust_score": 1.0
       }
     },
@@ -98,7 +98,7 @@
           "√16 = 4"
         ],
         "category": "math/roots",
-        "last_updated": 1775070494.311722,
+        "last_updated": 1775073238.5650077,
         "trust_score": 1.0
       }
     },
@@ -115,7 +115,7 @@
           "5! = 120"
         ],
         "category": "math/factorial",
-        "last_updated": 1775070494.3117235,
+        "last_updated": 1775073238.5650108,
         "trust_score": 1.0
       }
     },
@@ -131,7 +131,7 @@
           "2x = 10 → x = 5"
         ],
         "category": "math/equations",
-        "last_updated": 1775070494.3117251,
+        "last_updated": 1775073238.5650141,
         "trust_score": 1.0
       }
     },
@@ -144,7 +144,7 @@
         "description": "Sono ReasoningEngine v2.0, un AI che ragiona come un umano. Combino NLP, ragionamento deduttivo/induttivo/analogico, matematica avanzata, ricerca web e esecuzione codice.",
         "examples": [],
         "category": "system",
-        "last_updated": 1775070494.311757,
+        "last_updated": 1775073238.5664706,
         "trust_score": 1.0
       }
     },
@@ -435,6 +435,35 @@
         "category": "finance/stocks",
         "last_updated": 1775070508.8466084,
         "trust_score": 0.95
+      }
+    },
+    "relations": {}
+  },
+  "test_persist": {
+    "name": "test_persist",
+    "channels": {
+      "local": {
+        "description": "test persistenza",
+        "examples": [],
+        "category": "test",
+        "last_updated": 1775072346.0470853,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "test_concept": {
+    "name": "test_concept",
+    "channels": {
+      "user": {
+        "description": "un concetto con 2 esempi",
+        "examples": [
+          "esempio1",
+          "esempio2"
+        ],
+        "category": "general",
+        "last_updated": 1775073238.3988912,
+        "trust_score": 1.0
       }
     },
     "relations": {}
