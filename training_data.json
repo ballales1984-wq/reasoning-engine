@@ -158,5 +158,229 @@
     "difficulty": 0.5,
     "verified": true,
     "source": "manual"
+  },
+  {
+    "input": "test input",
+    "expected_output": "test output",
+    "category": "test",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "2+2",
+    "expected_output": "4",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "3*3",
+    "expected_output": "9",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "test",
+    "expected_output": "correct",
+    "category": "feedback",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "quanto fa 2 + 2?",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "quanto fa 3 * 3?",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "area cerchio raggio 1",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "ROI 1000 guadagno 1200",
+    "expected_output": "",
+    "category": "finance",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "interesse 1000 al 10% per 1 anno",
+    "expected_output": "",
+    "category": "finance",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "quanto fa 5 + 5?",
+    "expected_output": "",
+    "category": "feedback",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "test input",
+    "expected_output": "",
+    "category": "test",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "2+2",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "3*3",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "test",
+    "expected_output": "",
+    "category": "feedback",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "quanto fa 2 + 2?",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "quanto fa 3 * 3?",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "area cerchio raggio 1",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "ROI 1000 guadagno 1200",
+    "expected_output": "",
+    "category": "finance",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "interesse 1000 al 10% per 1 anno",
+    "expected_output": "",
+    "category": "finance",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "quanto fa 5 + 5?",
+    "expected_output": "",
+    "category": "feedback",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "test input",
+    "expected_output": "",
+    "category": "test",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "2+2",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "3*3",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "test",
+    "expected_output": "",
+    "category": "feedback",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "test input",
+    "expected_output": "",
+    "category": "test",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "2+2",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "3*3",
+    "expected_output": "",
+    "category": "math",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
+  },
+  {
+    "input": "test",
+    "expected_output": "",
+    "category": "feedback",
+    "difficulty": 0.5,
+    "verified": true,
+    "source": "manual"
   }
 ]
