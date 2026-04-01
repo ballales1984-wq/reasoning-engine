@@ -14,10 +14,12 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from engine import ReasoningEngine
 from engine.ollama_tool import OllamaTool
 from engine.finance_module import FinanceModule
+from engine.datetime_tool import DateTimeTool
 
 engine = ReasoningEngine()
 ollama = OllamaTool(default_model='tinyllama')
 finance = FinanceModule(engine.knowledge, engine.rules)
+datetime_tool = DateTimeTool()
 
 PORT = 8080
 
@@ -182,17 +184,30 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == '/api/ask':
             length = int(self.headers['Content-Length'])
             data = json.loads(self.rfile.read(length))
-            q = data.get('question', '')
+            q = data.get('question', '').lower()
             
-            result = engine.reason(q)
+            # Controlla se è una domanda su data/ora
+            if any(word in q for word in ['giorno', 'data', 'ora', 'che giorno', 'che ore', 'calendario', 'domani', 'ieri']):
+                if 'ora' in q or 'che ore' in q:
+                    answer = f"Sono le {datetime_tool.time()}"
+                elif 'domani' in q:
+                    answer = f"Domani sarà {datetime_tool.add_days(1)}"
+                elif 'ieri' in q:
+                    answer = f"Ieri era {datetime_tool.add_days(-1)}"
+                else:
+                    answer = f"Oggi è {datetime_tool.today()}"
             
-            if result['answer'] and result['confidence'] > 0.5:
-                answer = str(result['answer'])
-            elif ollama.is_available():
-                r = ollama.generate(q)
-                answer = r.get('response', 'Non so rispondere')
             else:
-                answer = 'Non so rispondere'
+                # Usa l'engine normale
+                result = engine.reason(data.get('question', ''))
+                
+                if result['answer'] and result['confidence'] > 0.5:
+                    answer = str(result['answer'])
+                elif ollama.is_available():
+                    r = ollama.generate(data.get('question', ''))
+                    answer = r.get('response', 'Non so rispondere')
+                else:
+                    answer = 'Non so rispondere'
             
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
