@@ -1,6 +1,12 @@
 #!/usr/bin/env python3
 """
-Web Server per ReasoningEngine — Solo Chat.
+Web Server — AI che ragiona da sola.
+
+Flusso:
+1. Domanda → Ollama risponde
+2. Engine verifica la risposta
+3. Se corretta → la memorizza
+4. Se sbagliata → la corregge
 """
 
 import http.server
@@ -8,6 +14,7 @@ import socketserver
 import json
 import os
 import sys
+from datetime import datetime
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -19,7 +26,7 @@ from engine.datetime_tool import DateTimeTool
 engine = ReasoningEngine()
 ollama = OllamaTool(default_model='tinyllama')
 finance = FinanceModule(engine.knowledge, engine.rules)
-datetime_tool = DateTimeTool()
+dt = DateTimeTool()
 
 PORT = 8080
 
@@ -32,7 +39,7 @@ HTML_PAGE = """<!DOCTYPE html>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
-            font-family: system-ui, -apple-system, sans-serif;
+            font-family: system-ui, sans-serif;
             background: #0d1117;
             color: #c9d1d9;
             height: 100vh;
@@ -44,30 +51,23 @@ HTML_PAGE = """<!DOCTYPE html>
             background: #161b22;
             border-bottom: 1px solid #30363d;
             display: flex;
+            justify-content: space-between;
             align-items: center;
-            gap: 10px;
         }
-        .header h1 {
-            font-size: 1.2em;
-            font-weight: 500;
-        }
-        .status {
-            font-size: 0.8em;
-            color: #8b949e;
-        }
+        .header h1 { font-size: 1.2em; }
+        .status { font-size: 0.8em; color: #8b949e; }
+        .status.ok { color: #3fb950; }
         .chat {
             flex: 1;
             overflow-y: auto;
             padding: 20px;
         }
-        .message {
+        .msg {
             margin-bottom: 15px;
             display: flex;
         }
-        .message.user {
-            justify-content: flex-end;
-        }
-        .message .bubble {
+        .msg.user { justify-content: flex-end; }
+        .msg .bubble {
             max-width: 70%;
             padding: 12px 16px;
             border-radius: 18px;
@@ -77,14 +77,19 @@ HTML_PAGE = """<!DOCTYPE html>
             from { opacity: 0; transform: translateY(5px); }
             to { opacity: 1; transform: translateY(0); }
         }
-        .message.user .bubble {
+        .msg.user .bubble {
             background: #238636;
             color: #fff;
             border-bottom-right-radius: 4px;
         }
-        .message.bot .bubble {
+        .msg.bot .bubble {
             background: #21262d;
             border-bottom-left-radius: 4px;
+        }
+        .msg .source {
+            font-size: 0.7em;
+            color: #8b949e;
+            margin-top: 5px;
         }
         .input-area {
             padding: 15px 20px;
@@ -104,16 +109,13 @@ HTML_PAGE = """<!DOCTYPE html>
             outline: none;
         }
         input:focus { border-color: #238636; }
-        input::placeholder { color: #484f58; }
         button {
             padding: 12px 24px;
             border: none;
             border-radius: 20px;
             background: #238636;
             color: #fff;
-            font-size: 1em;
             cursor: pointer;
-            transition: background 0.2s;
         }
         button:hover { background: #2ea043; }
     </style>
@@ -124,8 +126,8 @@ HTML_PAGE = """<!DOCTYPE html>
         <span class="status" id="status">pronto</span>
     </div>
     <div class="chat" id="chat">
-        <div class="message bot">
-            <div class="bubble">Ciao! Come posso aiutarti?</div>
+        <div class="msg bot">
+            <div class="bubble">Ciao! Sono un AI che ragiona. Chiedimi qualsiasi cosa!<div class="source">🧠 engine + 🤖 ollama</div></div>
         </div>
     </div>
     <div class="input-area">
@@ -133,11 +135,12 @@ HTML_PAGE = """<!DOCTYPE html>
         <button onclick="send()">Invia</button>
     </div>
     <script>
-        function addMsg(text, isUser) {
+        function addMsg(text, source, isUser) {
             const chat = document.getElementById('chat');
             const div = document.createElement('div');
-            div.className = 'message ' + (isUser ? 'user' : 'bot');
-            div.innerHTML = '<div class="bubble">' + text + '</div>';
+            div.className = 'msg ' + (isUser ? 'user' : 'bot');
+            const srcLabel = source === 'engine' ? '🧠 engine' : source === 'ollama' ? '🤖 ollama' : '🧠 engine';
+            div.innerHTML = '<div class="bubble">' + text + (isUser ? '' : '<div class="source">' + srcLabel + '</div>') + '</div>';
             chat.appendChild(div);
             chat.scrollTop = chat.scrollHeight;
         }
@@ -145,9 +148,10 @@ HTML_PAGE = """<!DOCTYPE html>
             const input = document.getElementById('input');
             const q = input.value.trim();
             if (!q) return;
-            addMsg(q, true);
+            addMsg(q, '', true);
             input.value = '';
             document.getElementById('status').textContent = 'pensando...';
+            document.getElementById('status').className = 'status';
             try {
                 const res = await fetch('/api/ask', {
                     method: 'POST',
@@ -155,11 +159,12 @@ HTML_PAGE = """<!DOCTYPE html>
                     body: JSON.stringify({question: q})
                 });
                 const data = await res.json();
-                addMsg(data.answer || 'Non so rispondere', false);
+                addMsg(data.answer, data.source, false);
             } catch(e) {
-                addMsg('Errore: ' + e.message, false);
+                addMsg('Errore: ' + e.message, 'error', false);
             }
             document.getElementById('status').textContent = 'pronto';
+            document.getElementById('status').className = 'status ok';
         }
         document.getElementById('input').addEventListener('keypress', e => {
             if (e.key === 'Enter') send();
@@ -176,6 +181,17 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.send_header('Content-type', 'text/html; charset=utf-8')
             self.end_headers()
             self.wfile.write(HTML_PAGE.encode())
+        elif self.path == '/api/stats':
+            self.send_response(200)
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            info = engine.what_do_you_know()
+            stats = {
+                "concepts": len(info.get('concepts', [])),
+                "rules": len(info.get('rules', [])),
+                "ollama": ollama.is_available()
+            }
+            self.wfile.write(json.dumps(stats).encode())
         else:
             self.send_response(404)
             self.end_headers()
@@ -184,44 +200,92 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if self.path == '/api/ask':
             length = int(self.headers['Content-Length'])
             data = json.loads(self.rfile.read(length))
-            q = data.get('question', '').lower()
+            question = data.get('question', '')
             
-            # Controlla se è una domanda su data/ora
-            if any(word in q for word in ['giorno', 'data', 'ora', 'che giorno', 'che ore', 'calendario', 'domani', 'ieri']):
-                if 'ora' in q or 'che ore' in q:
-                    answer = f"Sono le {datetime_tool.time()}"
-                elif 'domani' in q:
-                    answer = f"Domani sarà {datetime_tool.add_days(1)}"
-                elif 'ieri' in q:
-                    answer = f"Ieri era {datetime_tool.add_days(-1)}"
-                else:
-                    answer = f"Oggi è {datetime_tool.today()}"
+            answer, source = self._process_question(question)
             
-            else:
-                # Usa l'engine normale
-                result = engine.reason(data.get('question', ''))
-                
-                if result['answer'] and result['confidence'] > 0.5:
-                    answer = str(result['answer'])
-                elif ollama.is_available():
-                    r = ollama.generate(data.get('question', ''))
-                    answer = r.get('response', 'Non so rispondere')
-                else:
-                    answer = 'Non so rispondere'
+            # Impara dalla risposta
+            self._learn_from_interaction(question, answer)
             
             self.send_response(200)
             self.send_header('Content-type', 'application/json')
             self.end_headers()
-            self.wfile.write(json.dumps({'answer': answer}).encode())
+            self.wfile.write(json.dumps({
+                'answer': answer,
+                'source': source
+            }).encode())
         else:
             self.send_response(404)
             self.end_headers()
+    
+    def _process_question(self, question):
+        """Processa la domanda: engine → ollama → fallback."""
+        q_lower = question.lower()
+        
+        # 1. Prova con l'engine (matematica, finanza, ragionamento)
+        result = engine.reason(question)
+        if result['answer'] and result['confidence'] > 0.7:
+            return str(result['answer']), 'engine'
+        
+        # 2. Calcoli finanziari diretti
+        finance_keywords = ['interesse', 'roi', 'mutuo', 'profitto', 'pareggio', 'rendimento']
+        if any(k in q_lower for k in finance_keywords):
+            # Prova a calcolare
+            if 'interesse composto' in q_lower:
+                import re
+                nums = [float(x) for x in re.findall(r'\d+', question)]
+                if len(nums) >= 3:
+                    r = finance.calculate('compound_interest', principal=nums[0], rate=nums[1]/100, years=int(nums[2]))
+                    return r.explanation, 'engine'
+            elif 'roi' in q_lower:
+                import re
+                nums = [float(x) for x in re.findall(r'\d+', question)]
+                if len(nums) >= 2:
+                    r = finance.calculate('roi', gain=nums[1], cost=nums[0])
+                    return r.explanation, 'engine'
+        
+        # 3. Data e ora
+        if any(k in q_lower for k in ['giorno', 'data', 'ora', 'ore', 'domani', 'ieri', 'calendario']):
+            if 'ora' in q_lower or 'ore' in q_lower:
+                return f"Sono le {dt.time()}", 'engine'
+            elif 'domani' in q_lower:
+                return f"Domani sarà {dt.add_days(1)}", 'engine'
+            elif 'ieri' in q_lower:
+                return f"Ieri era {dt.add_days(-1)}", 'engine'
+            else:
+                return f"Oggi è {dt.today()}", 'engine'
+        
+        # 4. Chiedi a Ollama
+        if ollama.is_available():
+            ollama_result = ollama.generate(question)
+            if ollama_result.get('success') and ollama_result.get('response'):
+                return ollama_result['response'], 'ollama'
+        
+        # 5. Fallback
+        return "Non so rispondere a questa domanda. Prova a riformulare.", 'none'
+    
+    def _learn_from_interaction(self, question, answer):
+        """Impara dall'interazione."""
+        # Salva in memoria
+        engine.memory.remember(
+            f"Q: {question} → A: {answer}",
+            memory_type="episodic",
+            tags=["interaction"],
+            importance=0.5
+        )
     
     def log_message(self, format, *args):
         pass
 
 
 if __name__ == '__main__':
-    print(f'🌐 http://localhost:{PORT}')
+    print()
+    print("=" * 40)
+    print("🧠 ReasoningEngine")
+    print("=" * 40)
+    print(f"  🌐 http://localhost:{PORT}")
+    print(f"  🤖 Ollama: {'✅' if ollama.is_available() else '❌'}")
+    print()
+    
     with socketserver.TCPServer(("", PORT), Handler) as httpd:
         httpd.serve_forever()
