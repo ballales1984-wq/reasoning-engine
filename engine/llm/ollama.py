@@ -17,7 +17,7 @@ class OllamaTool:
     """Tool per Ollama (LLM locale)."""
 
     def __init__(
-        self, base_url: str = "http://localhost:11434", default_model: str = "gemma3:1b"
+        self, base_url: str = "http://127.0.0.1:11434", default_model: str = "gemma3:1b"
     ):
         self.base_url = base_url.rstrip("/")
         self.default_model = default_model
@@ -29,7 +29,7 @@ class OllamaTool:
             req = urllib.request.Request(f"{self.base_url}/api/tags")
             with urllib.request.urlopen(req, timeout=5) as response:
                 return response.status == 200
-        except:
+        except Exception:
             return False
 
     def list_models(self) -> dict:
@@ -66,16 +66,21 @@ class OllamaTool:
         model = model or self.default_model
         try:
             payload = {
-                "model": model, "prompt": prompt, "stream": False,
-                "options": {"num_thread": 8, "temperature": 0.3}
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "options": {"num_gpu": 1, "num_thread": 8, "temperature": 0.3},
             }
-            if system: payload["system"] = system
-            if context: payload["context"] = context
+            if system:
+                payload["system"] = system
+            if context:
+                payload["context"] = context
 
             data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
                 f"{self.base_url}/api/generate",
-                data=data, headers={"Content-Type": "application/json"}
+                data=data,
+                headers={"Content-Type": "application/json"},
             )
             with urllib.request.urlopen(req, timeout=timeout) as response:
                 result = json.loads(response.read().decode())
@@ -85,10 +90,12 @@ class OllamaTool:
             self.conversation_history.append({"role": "assistant", "content": answer})
 
             return {
-                "success": True, "response": answer, "model": model,
+                "success": True,
+                "response": answer,
+                "model": model,
                 "eval_count": result.get("eval_count", 0),
                 "eval_duration": result.get("eval_duration", 0),
-                "context": result.get("context", [])
+                "context": result.get("context", []),
             }
         except Exception as e:
             return {"success": False, "error": str(e), "response": "Errore Ollama"}
@@ -98,21 +105,23 @@ class OllamaTool:
         model = model or "nomic-embed-text"
         try:
             payload = {
-                "model": model, "prompt": text,
-                "options": {"num_gpu": 1, "num_thread": 8}
+                "model": model,
+                "prompt": text,
+                "options": {"num_gpu": 1, "num_thread": 8},
             }
             data = json.dumps(payload).encode("utf-8")
             req = urllib.request.Request(
                 f"{self.base_url}/api/embeddings",
-                data=data, headers={"Content-Type": "application/json"}
+                data=data,
+                headers={"Content-Type": "application/json"},
             )
             with urllib.request.urlopen(req, timeout=60) as response:
                 result = json.loads(response.read().decode())
 
             return {
-                "success": True, 
+                "success": True,
                 "embedding": result.get("embedding", []),
-                "dimensions": len(result.get("embedding", []))
+                "dimensions": len(result.get("embedding", [])),
             }
         except Exception as e:
             return {"success": False, "error": str(e), "embedding": []}
@@ -154,7 +163,7 @@ class OllamaTool:
         except Exception as e:
             return {"success": False, "error": str(e)}
 
-    def pull_model(self, model: str) -> dict:
+    def pull_model(self, model: str, timeout: int = 300) -> dict:
         """Scarica un modello."""
         try:
             payload = {"name": model}
@@ -175,33 +184,8 @@ class OllamaTool:
             return {"success": False, "error": str(e)}
 
     def embed(self, text: str, model: str = None) -> dict:
-        """
-        Genera embedding per un testo.
-        """
-        model = model or self.default_model
-
-        try:
-            payload = {"model": model, "prompt": text}
-
-            data = json.dumps(payload).encode("utf-8")
-
-            req = urllib.request.Request(
-                f"{self.base_url}/api/embeddings",
-                data=data,
-                headers={"Content-Type": "application/json"},
-            )
-
-            with urllib.request.urlopen(req, timeout=30) as response:
-                result = json.loads(response.read().decode())
-
-            return {
-                "success": True,
-                "embedding": result.get("embedding", []),
-                "dimensions": len(result.get("embedding", [])),
-            }
-
-        except Exception as e:
-            return {"success": False, "error": str(e)}
+        """Alias per generate_embedding. Genera embedding per un testo."""
+        return self.generate_embedding(text, model)
 
     def clear_history(self):
         """Pulisci la history conversazione."""

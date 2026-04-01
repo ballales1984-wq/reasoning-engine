@@ -884,10 +884,8 @@ def _infer_operation(text: str, intent: str, operators: list, numbers: list) -> 
     if "%" in text_lower or "percentuale" in text_lower or "percento" in text_lower:
         return "percentage"
 
-    if (
-        "elevato" in text_lower
-        or "alla" in text_lower
-        and ("seconda" in text_lower or "terza" in text_lower)
+    if ("elevato" in text_lower or "alla" in text_lower) and (
+        "seconda" in text_lower or "terza" in text_lower
     ):
         return "power"
 

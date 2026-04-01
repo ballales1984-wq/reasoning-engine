@@ -43,8 +43,8 @@ class ReasoningEngine:
         self.finance_data = FinancialDataTool(self)
         self.data_analyzer = DataAnalysisTool(self)
         self.memory = MemoryTool(self)  # Long-term semantic memory
-        self.browser = BrowsingTool(self) # Deep web browsing
-        self.agents = AgentManager(self) # Multi-Agent Team
+        self.browser = BrowsingTool(self)  # Deep web browsing
+        self.agents = AgentManager(self)  # Multi-Agent Team
         self.deductive = DeductiveReasoner(self.knowledge, self.rules)
         self.inductive = InductiveReasoner(self.knowledge, self.rules)
         self.analogical = AnalogicalReasoner(self.knowledge)
@@ -107,7 +107,7 @@ class ReasoningEngine:
         # 1. NLP Parsing Iniziale (per intent e canali veloci)
         parsed_dict = self._parse_question(question)
         parsed = parsed_dict["_parsed"]
-        
+
         # 2. Fast-Path: Identity Handling (Sistema 1)
         if parsed.intent == "identity":
             identity = self.knowledge.get("self_identity")
@@ -117,79 +117,46 @@ class ReasoningEngine:
                     answer=best["description"],
                     confidence=1.0,
                     reasoning_type="identity",
-                    steps=[ReasoningStep(type="identity", description="Identificazione rapida", output=best, channel="system")],
-                    explanation="Accesso diretto all'identità di sistema."
+                    steps=[
+                        ReasoningStep(
+                            type="identity",
+                            description="Identificazione rapida",
+                            output=best,
+                            channel="system",
+                        )
+                    ],
+                    explanation="Accesso diretto all'identità di sistema.",
                 )
 
         # 3. Slow-Path: Multi-Agent Orchestration (Sistema 2)
         # Il manager coordina Researcher -> Analyst -> Critic
         agent_res = self.agents.orchestrate(question, parsed_dict)
-        
-        # 4. Verifica Finale Coerenza (Opzionale nel Critic, qui rinforzata)
+
+        # 4. Verifica Finale Coerenza (rinforzata oltre il Critic)
         verified = agent_res.get("status") == "approved"
-        
-        # 5. Generazione Spiegazione Finale
-        final_explanation = self.explainer.generate(
-            [s.description for s in agent_res["steps"]], 
-            {"answer": agent_res["answer"]}
-        )
-        if agent_res.get("feedback"):
-            final_explanation += f"\n[Critica AI: {agent_res['feedback']}]"
+        agent_steps = agent_res.get("steps", [])
 
-        return ReasoningResult(
-            answer=agent_res["answer"],
-            confidence=agent_res["confidence"],
-            reasoning_type="multi_agent_collaboration",
-            steps=agent_res["steps"],
-            explanation=final_explanation,
-            verified=verified,
-            sources=[] # Saranno riempiti dagli agenti
-        )
-
-        # Step 4: Verification
-        verified = False
-        if result_data:
-            verified = self.verifier.check(result_data, parsed_dict)
-            steps.append(
-                ReasoningStep(
-                    type="verification",
-                    description="Verifica finale coerenza",
-                    output=verified,
-                )
-            )
-
-        # Step 5: Salva nel contesto conversazione
+        # 5. Salva nel contesto conversazione
         self.conversation_history.append(
             {
                 "question": question,
-                "answer": str(result_data["answer"]) if result_data else None,
-                "confidence": result_data.get("confidence", 0) if result_data else 0,
+                "answer": str(agent_res["answer"])
+                if agent_res.get("answer") is not None
+                else None,
+                "confidence": agent_res.get("confidence", 0),
                 "channel": channel,
             }
         )
 
-        # Step 6: Final Response Generation
-        if result_data:
-            final_explanation = self.explainer.generate(
-                [s.description for s in steps], result_data
-            )
-            # Aggiungi info canali all'explanation
-            if sources_used:
-                best_source = max(sources_used, key=lambda s: s.trust_score)
-                final_explanation += f"\n[Fonte principale: {best_source.channel}]"
+        # 6. Generazione Spiegazione Finale
+        final_explanation = self.explainer.generate(
+            [s.description for s in agent_steps], {"answer": agent_res["answer"]}
+        )
+        if agent_res.get("feedback"):
+            final_explanation += f"\n[Critica AI: {agent_res['feedback']}]"
 
-            return ReasoningResult(
-                answer=result_data["answer"],
-                confidence=result_data.get("confidence", 0.9),
-                reasoning_type=result_data.get("rule_used", "reasoning"),
-                steps=steps,
-                explanation=final_explanation,
-                verified=verified,
-                sources=sources_used,
-            )
-
-        # Fallback to LLM if allowed
-        if use_llm and self.llm.is_available():
+        # 7. Fallback to LLM if agent didn't produce a useful answer
+        if agent_res.get("answer") is None and use_llm and self.llm.is_available():
             llm_res = self.llm.fallback_solve(question)
             if llm_res.facts:
                 best = max(llm_res.facts, key=lambda f: f.confidence)
@@ -197,7 +164,7 @@ class ReasoningEngine:
                     answer=best.value,
                     confidence=best.confidence,
                     reasoning_type="llm",
-                    steps=steps
+                    steps=agent_steps
                     + [
                         ReasoningStep(
                             type="llm",
@@ -210,11 +177,22 @@ class ReasoningEngine:
                     sources=[SourceMetadata(channel="ollama", trust_score=0.4)],
                 )
 
+        if agent_res.get("answer") is None:
+            return ReasoningResult(
+                answer=None,
+                confidence=0.0,
+                steps=agent_steps,
+                explanation="Non ho abbastanza informazioni nei canali attuali per rispondere.",
+            )
+
         return ReasoningResult(
-            answer=None,
-            confidence=0.0,
-            steps=steps,
-            explanation="Non ho abbastanza informazioni nei canali attuali per rispondere.",
+            answer=agent_res["answer"],
+            confidence=agent_res.get("confidence", 0.0),
+            reasoning_type="multi_agent_collaboration",
+            steps=agent_steps,
+            explanation=final_explanation,
+            verified=verified,
+            sources=[],
         )
 
     def _parse_question(self, question: str) -> dict:

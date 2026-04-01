@@ -237,4 +237,3 @@ class KnowledgeGraph:
                 self.concepts[name] = concept
         except Exception as e:
             print(f"Errore caricamento KnowledgeGraph: {e}")
-            pass

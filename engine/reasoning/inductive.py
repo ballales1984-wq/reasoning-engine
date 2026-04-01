@@ -10,6 +10,7 @@ Esempio:
 
 from dataclasses import dataclass, field
 from collections import Counter
+import re
 
 
 from ..core.types import Pattern, InductionResult
@@ -36,7 +37,7 @@ class InductiveReasoner:
         if len(examples) < 2:
             return InductionResult(
                 found=False,
-                explanation="Servono almeno 2 esempi per indurre un pattern"
+                explanation="Servono almeno 2 esempi per indurre un pattern",
             )
 
         patterns = []
@@ -72,7 +73,7 @@ class InductiveReasoner:
                         value=value,
                         frequency=count,
                         total_examples=len(relation_facts),
-                        confidence=frequency
+                        confidence=frequency,
                     )
                     patterns.append(pattern)
 
@@ -82,13 +83,15 @@ class InductiveReasoner:
                     else:
                         rule_desc = f"Oggetti simili a {subjects[0]} {relation} {value}"
 
-                    rules_created.append({
-                        "rule": rule_desc,
-                        "subjects": subjects,
-                        "relation": relation,
-                        "value": value,
-                        "confidence": frequency
-                    })
+                    rules_created.append(
+                        {
+                            "rule": rule_desc,
+                            "subjects": subjects,
+                            "relation": relation,
+                            "value": value,
+                            "confidence": frequency,
+                        }
+                    )
 
         # Cerca pattern numerici
         numeric_patterns = self._find_numeric_patterns(facts)
@@ -105,12 +108,11 @@ class InductiveReasoner:
                 found=True,
                 patterns=patterns,
                 rules_created=rules_created,
-                explanation=explanation
+                explanation=explanation,
             )
 
         return InductionResult(
-            found=False,
-            explanation="Non ho trovato pattern evidenti negli esempi"
+            found=False, explanation="Non ho trovato pattern evidenti negli esempi"
         )
 
     def induce_from_knowledge(self) -> InductionResult:
@@ -119,7 +121,9 @@ class InductiveReasoner:
         """
         all_concepts = self.knowledge.list_all()
         if len(all_concepts) < 3:
-            return InductionResult(found=False, explanation="Pochi concetti per induzione")
+            return InductionResult(
+                found=False, explanation="Pochi concetti per induzione"
+            )
 
         patterns = []
 
@@ -154,7 +158,7 @@ class InductiveReasoner:
                         value=target,
                         frequency=count,
                         total_examples=len(concepts),
-                        confidence=confidence
+                        confidence=confidence,
                     )
                     patterns.append(pattern)
 
@@ -162,55 +166,68 @@ class InductiveReasoner:
             return InductionResult(
                 found=True,
                 patterns=patterns,
-                explanation=f"Trovati {len(patterns)} pattern nella conoscenza esistente"
+                explanation=f"Trovati {len(patterns)} pattern nella conoscenza esistente",
             )
 
         return InductionResult(found=False)
 
     def _extract_facts(self, examples: list[str]) -> list[dict]:
         """Estrae fatti strutturati da frasi."""
-        import re
         facts = []
 
         for example in examples:
             example = example.lower().strip()
 
             # Pattern: "X ha Y" → X ha Y
-            match = re.search(r'(?:il|la|i|le|lo|un|una)\s+(\w+)\s+ha\s+(?:il|la|i|le|lo|un|una)?\s*(\w+(?:\s+\w+)?)', example)
+            match = re.search(
+                r"(?:il|la|i|le|lo|un|una)\s+(\w+)\s+ha\s+(?:il|la|i|le|lo|un|una)?\s*(\w+(?:\s+\w+)?)",
+                example,
+            )
             if match:
-                facts.append({
-                    "subject": match.group(1),
-                    "relation": "ha",
-                    "value": match.group(2).strip()
-                })
+                facts.append(
+                    {
+                        "subject": match.group(1),
+                        "relation": "ha",
+                        "value": match.group(2).strip(),
+                    }
+                )
                 continue
 
             # Pattern: "X è Y" → X è Y
-            match = re.search(r'(?:il|la|i|le|lo|un|una)\s+(\w+)\s+[èe]\s+(?:un[ao]?\s+)?(\w+)', example)
+            match = re.search(
+                r"(?:il|la|i|le|lo|un|una)\s+(\w+)\s+[èe]\s+(?:un[ao]?\s+)?(\w+)",
+                example,
+            )
             if match:
-                facts.append({
-                    "subject": match.group(1),
-                    "relation": "è",
-                    "value": match.group(2)
-                })
+                facts.append(
+                    {
+                        "subject": match.group(1),
+                        "relation": "è",
+                        "value": match.group(2),
+                    }
+                )
                 continue
 
             # Pattern numerico: "X Y N" (es. "cane ha 4 zampe")
-            match = re.search(r'(\w+)\s+(?:ha|con)\s+(\d+)\s+(\w+)', example)
+            match = re.search(r"(\w+)\s+(?:ha|con)\s+(\d+)\s+(\w+)", example)
             if match:
-                facts.append({
-                    "subject": match.group(1),
-                    "relation": "ha",
-                    "value": f"{match.group(2)} {match.group(3)}"
-                })
+                facts.append(
+                    {
+                        "subject": match.group(1),
+                        "relation": "ha",
+                        "value": f"{match.group(2)} {match.group(3)}",
+                    }
+                )
                 continue
 
             # Fallback: salva come fatto generico
-            facts.append({
-                "subject": example.split()[0] if example.split() else "unknown",
-                "relation": "generico",
-                "value": example
-            })
+            facts.append(
+                {
+                    "subject": example.split()[0] if example.split() else "unknown",
+                    "relation": "generico",
+                    "value": example,
+                }
+            )
 
         return facts
 
@@ -235,22 +252,24 @@ class InductiveReasoner:
             if concept:
                 parents = concept.relations.get("è_un_tipo_di", [])
                 for parent in parents:
-                    parent_concept = self.knowledge.get(parent)
+                    parent_name = (
+                        parent[0] if isinstance(parent, (tuple, list)) else parent
+                    )
+                    parent_concept = self.knowledge.get(parent_name)
                     if parent_concept and parent_concept.category != "general":
-                        return parent
+                        return parent_name
 
         return ""
 
     def _find_numeric_patterns(self, facts: list[dict]) -> list[Pattern]:
         """Trova pattern numerici negli esempi."""
-        import re
         patterns = []
 
         # Raggruppa per relazione e cerca valori numerici
         numeric_facts = {}
         for fact in facts:
             value = str(fact["value"])
-            numbers = re.findall(r'\d+', value)
+            numbers = re.findall(r"\d+", value)
             if numbers:
                 key = fact["relation"]
                 if key not in numeric_facts:
@@ -261,13 +280,15 @@ class InductiveReasoner:
             if len(values) >= 2:
                 # Tutti uguali?
                 if len(set(values)) == 1:
-                    patterns.append(Pattern(
-                        description=f"Tutti hanno {relation} = {values[0]}",
-                        attribute=relation,
-                        value=values[0],
-                        frequency=len(values),
-                        total_examples=len(values),
-                        confidence=1.0
-                    ))
+                    patterns.append(
+                        Pattern(
+                            description=f"Tutti hanno {relation} = {values[0]}",
+                            attribute=relation,
+                            value=values[0],
+                            frequency=len(values),
+                            total_examples=len(values),
+                            confidence=1.0,
+                        )
+                    )
 
         return patterns
