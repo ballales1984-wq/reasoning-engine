@@ -539,6 +539,7 @@ def classify_intent(text: str) -> tuple[str, float]:
 
 # Mesi, giorni, unità comuni per evitare false entità
 NOISE_WORDS = {
+    # Italian
     "gennaio",
     "febbraio",
     "marzo",
@@ -568,6 +569,36 @@ NOISE_WORDS = {
     "litro",
     "euro",
     "dollari",
+    # English
+    "january",
+    "february",
+    "march",
+    "april",
+    "may",
+    "june",
+    "july",
+    "august",
+    "september",
+    "october",
+    "november",
+    "december",
+    "monday",
+    "tuesday",
+    "wednesday",
+    "thursday",
+    "friday",
+    "saturday",
+    "sunday",
+    "meter",
+    "meters",
+    "kilogram",
+    "kilograms",
+    "pound",
+    "pounds",
+    "liter",
+    "liters",
+    "dollar",
+    "dollars",
 }
 
 
@@ -699,9 +730,11 @@ def extract_relations(text: str) -> list[tuple[str, str, str]]:
 
     # Articoli da rimuovere dai match
     articles = r"(?:il |la |i |le |lo |un |una )?"
+    articles_en = r"(?:the |a |an )?"
 
-    # Pattern di relazione
+    # Pattern di relazione (Italiano + Inglese)
     relation_patterns = [
+        # Italiano
         (r"(\w+)\s+[èe]\s+" + articles + r"(\w+)", "è_un"),
         (r"(\w+)\s+ha\s+" + articles + r"(\w+)", "ha_caratteristica"),
         (r"(\w+)\s+[èe]\s+(\w+)\s+di\s+(\w+)", "è_di"),
@@ -714,6 +747,13 @@ def extract_relations(text: str) -> list[tuple[str, str, str]]:
             "ha_caratteristica",
         ),
         (r"(\w+)\s+si\s+(muove|trova|comporta)", "ha_caratteristica_si"),
+        # English
+        (r"(\w+)\s+is\s+(?:a|an|the)?\s*(\w+)", "is_a"),
+        (r"(\w+)\s+has\s+(?:a|an|the)?\s*(\w+)", "has_property"),
+        (r"(\w+)\s+can\s+(\w+)", "can"),
+        (r"(\w+)\s+lives\s+in\s+(\w+)", "lives_in"),
+        (r"(\w+)\s+causes\s+(\w+)", "causes"),
+        (r"(\w+)\s+is\s+similar\s+to\s+(\w+)", "similar_to"),
     ]
 
     for pattern, rel_type in relation_patterns:
