@@ -52,6 +52,9 @@ class Explainer:
             explanation += "\n**Collegamenti:**\n"
             for rel_type, targets in concept.relations.items():
                 for target in targets:
-                    explanation += f"  • {rel_type}: {target}\n"
+                    target_name = (
+                        target[0] if isinstance(target, (tuple, list)) else target
+                    )
+                    explanation += f"  - {rel_type}: {target_name}\n"
 
         return explanation

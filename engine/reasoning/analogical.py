@@ -25,6 +25,7 @@ class AnalogicalReasoner:
 
     def __init__(self, knowledge_graph):
         self.knowledge = knowledge_graph
+        self._signature_cache = {}  # {concept_name: signature}
 
     def find_analogies(self, concept_name: str, max_results: int = 3) -> AnalogyResult:
         """
@@ -35,8 +36,7 @@ class AnalogicalReasoner:
         source = self.knowledge.get(concept_name)
         if not source:
             return AnalogyResult(
-                found=False,
-                explanation=f"Non conosco '{concept_name}'"
+                found=False, explanation=f"Non conosco '{concept_name}'"
             )
 
         analogies = []
@@ -68,12 +68,11 @@ class AnalogicalReasoner:
                 found=True,
                 analogies=analogies,
                 best_analogy=best,
-                explanation=explanation
+                explanation=explanation,
             )
 
         return AnalogyResult(
-            found=False,
-            explanation=f"Non ho trovato analogie per '{concept_name}'"
+            found=False, explanation=f"Non ho trovato analogie per '{concept_name}'"
         )
 
     def explain_analogy(self, source_name: str, target_name: str) -> str:
@@ -106,7 +105,9 @@ class AnalogicalReasoner:
         if analogy.explanation:
             explanation += f"\n💡 {analogy.explanation}"
 
-        explanation += f"\n\n📊 Similarità strutturale: {analogy.structural_similarity:.0%}"
+        explanation += (
+            f"\n\n📊 Similarità strutturale: {analogy.structural_similarity:.0%}"
+        )
 
         return explanation
 
@@ -133,16 +134,18 @@ class AnalogicalReasoner:
         # Trova proprietà di source che target non ha
         for rel_type, targets in source.relations.items():
             if rel_type not in target.relations:
-                transferred.append({
-                    "relation": rel_type,
-                    "values": targets,
-                    "confidence": analogy.structural_similarity
-                })
+                transferred.append(
+                    {
+                        "relation": rel_type,
+                        "values": targets,
+                        "confidence": analogy.structural_similarity,
+                    }
+                )
 
         return {
             "transferred": len(transferred) > 0,
             "properties": transferred,
-            "based_on_analogy": analogy.structural_similarity
+            "based_on_analogy": analogy.structural_similarity,
         }
 
     def _compare(self, concept_a, concept_b) -> Analogy | None:
@@ -186,29 +189,31 @@ class AnalogicalReasoner:
             shared_relations=list(shared_rel_types),
             shared_properties=list(shared_props),
             structural_similarity=similarity,
-            explanation=explanation
+            explanation=explanation,
         )
 
     def _structural_signature(self, concept) -> dict:
         """
-        Genera una "firma strutturale" di un concetto.
+        Genera una "firma strutturale" di un concetto (con cache).
         La firma contiene i TIPI di relazioni, non i valori specifici.
         """
+        if concept.name in self._signature_cache:
+            return self._signature_cache[concept.name]
+
         relation_types = []
         property_types = []
 
         for rel_type, targets in concept.relations.items():
-            # Il tipo di relazione è la struttura
             relation_types.append(rel_type)
-
-            # Anche il NUMERO di target per tipo è strutturale
             if len(targets) > 3:
                 property_types.append(f"{rel_type}:many")
             elif len(targets) == 1:
                 property_types.append(f"{rel_type}:single")
 
-        return {
+        sig = {
             "relation_types": relation_types,
             "property_types": property_types,
-            "num_relations": len(relation_types)
+            "num_relations": len(relation_types),
         }
+        self._signature_cache[concept.name] = sig
+        return sig
