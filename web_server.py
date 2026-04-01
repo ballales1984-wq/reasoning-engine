@@ -23,10 +23,10 @@ sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding="utf-8", errors="repla
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from engine import ReasoningEngine
-from engine.ollama_tool import OllamaTool
-from engine.finance_module import FinanceModule
-from engine.code_tool import CodeTool
-from engine.web_tool import WebTool
+from engine.llm.ollama import OllamaTool
+from engine.tools.finance import FinanceModule
+from engine.tools.code import CodeTool
+from engine.tools.web import WebTool
 
 engine = ReasoningEngine()
 ollama = OllamaTool(default_model="gemma3:1b")
@@ -391,8 +391,8 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
         # 1. Prova con l'engine (matematica, finanza, ragionamento)
         result = engine.reason(question)
-        if result["answer"] and result["confidence"] > 0.7:
-            return str(result["answer"]), "engine"
+        if result.answer and result.confidence > 0.7:
+            return str(result.answer), "engine"
 
         # 2. Ricerca web
         search_keywords = [
@@ -466,7 +466,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         # 5. Chiedi a Ollama
         if ollama.is_available():
             try:
-                ollama_result = ollama.generate(question, timeout=30)
+                ollama_result = ollama.generate(question, timeout=15)
                 if ollama_result.get("success") and ollama_result.get("response"):
                     return ollama_result["response"], "ollama"
             except Exception:

@@ -6,7 +6,7 @@ Esegui: python test_all.py
 """
 
 from engine import ReasoningEngine
-from engine.finance_module import FinanceModule
+from engine.tools.finance import FinanceModule
 
 
 def run_test(name, test_func):
@@ -18,6 +18,8 @@ def run_test(name, test_func):
         return result
     except Exception as e:
         print(f"  ❌ {name}: {e}")
+        import traceback
+        traceback.print_exc()
         return False
 
 
@@ -38,13 +40,13 @@ def main():
     
     def test_addition():
         r = engine.reason('quanto fa 15 + 27?')
-        return r['answer'] == 42.0
+        return r.answer == 42.0
     total += 1
     if run_test("Addizione", test_addition): passed += 1
     
     def test_subtraction():
         r = engine.reason('quanto fa 100 - 37?')
-        return r['answer'] == 63.0
+        return r.answer == 63.0
     total += 1
     if run_test("Sottrazione", test_subtraction): passed += 1
     
@@ -151,14 +153,14 @@ def main():
     print("🗣️ NLP")
     
     def test_nlp_math():
-        from engine.nlp_parser import parse
+        from engine.nlp.parser import parse
         parsed = parse("quanto fa 5 + 3")
         return parsed.intent == "calculate"
     total += 1
     if run_test("Parsing matematico", test_nlp_math): passed += 1
     
     def test_nlp_define():
-        from engine.nlp_parser import parse
+        from engine.nlp.parser import parse
         parsed = parse("cos'è un atomo?")
         return parsed.intent == "define"
     total += 1

@@ -21,9 +21,9 @@ class MathModule:
     Modulo matematico avanzato.
     """
 
-    def __init__(self, rule_engine, knowledge_graph):
-        self.rules = rule_engine
+    def __init__(self, knowledge_graph, rule_engine):
         self.knowledge = knowledge_graph
+        self.rules = rule_engine
         self._register_advanced_rules()
         self._register_math_concepts()
 

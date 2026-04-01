@@ -30,7 +30,7 @@ class ReasoningEngine:
         self.learner = Learner(self.knowledge)
         self.verifier = Verifier(self.rules)
         self.explainer = Explainer()
-        self.math = MathModule(self.rules, self.knowledge)
+        self.math = MathModule(self.knowledge, self.rules)
         self.deductive = DeductiveReasoner(self.knowledge, self.rules)
         self.inductive = InductiveReasoner(self.knowledge, self.rules)
         self.analogical = AnalogicalReasoner(self.knowledge)
