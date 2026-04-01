@@ -34,7 +34,8 @@ class ParsedQuery:
     operators: list = field(default_factory=list)
     confidence: float = 0.5
     language: str = "it"
-    operation: str = "unknown"  # Per compatibilità con engine esistente
+    operation: str = "unknown"
+    channel: str = "user_interaction"
 
 
 # ============================================================
@@ -447,6 +448,21 @@ INTENT_PATTERNS = {
         r"^learn",
         r"^know that",
         r"^memorize",
+    ],
+    "identity": [
+        r"chi [èe]i",
+        r"come ti chiami",
+        r"cosa (sei|fai|puoi)",
+        r"qual[ei] (sono|è) (le tue|il tuo|la tua)",
+        r"dimmi di te",
+        r"chi sei",
+        r"cosa puoi fare",
+        # English
+        r"who are you",
+        r"what are you",
+        r"what can you do",
+        r"tell me about yourself",
+        r"your name",
     ],
     "search": [
         r"cerca",

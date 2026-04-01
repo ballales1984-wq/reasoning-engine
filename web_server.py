@@ -233,6 +233,7 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 "concepts": len(info.get("concepts", [])),
                 "rules": len(info.get("rules", [])),
                 "ollama": ollama.is_available(),
+                "conversation_turns": len(engine.conversation_history),
                 "capabilities": [
                     "math",
                     "finance",
@@ -257,6 +258,11 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     {"available": ollama.is_available(), "models": models}
                 ).encode()
             )
+        elif self.path == "/api/history":
+            self.send_response(200)
+            self.send_header("Content-type", "application/json")
+            self.end_headers()
+            self.wfile.write(json.dumps(engine.conversation_history[-20:]).encode())
         else:
             self.send_response(404)
             self.end_headers()
@@ -400,6 +406,27 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if known and known.description:
             return known.description, "learned"
 
+        # 1c. Domande sull'identità dell'AI
+        identity_keywords = [
+            "chi sei",
+            "cosa sei",
+            "come ti chiami",
+            "cosa puoi",
+            "who are you",
+            "what are you",
+            "what can you do",
+        ]
+        if any(k in q_lower for k in identity_keywords):
+            self_info = engine.knowledge.get("self_identity")
+            if self_info and self_info.description:
+                return self_info.description, "learned"
+            # Risposta di default
+            return (
+                "Sono ReasoningEngine v2.0, un AI che ragiona come un umano. "
+                "Posso fare calcoli matematici, ragionamento deduttivo, "
+                "ricerca web, esecuzione codice e molto altro."
+            ), "engine"
+
         # 2. Ricerca web
         search_keywords = [
             "cerca",
@@ -490,12 +517,9 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
     def _learn_from_ollama(self, question, answer):
         """Memorizza la risposta di Ollama per risponderci in futuro."""
-        import hashlib
-
-        # Crea un concetto dalla domanda normalizzata
         key = question.strip().lower().rstrip("?").strip()
-        # Salva nel knowledge graph
         engine.knowledge.add(key, description=answer[:500], category="learned/ollama")
+        engine.knowledge.save()  # Salva su disco
 
     def log_message(self, format, *args):
         pass

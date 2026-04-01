@@ -1,5 +1,15 @@
 from dataclasses import dataclass, field
 from typing import Any, List, Dict, Optional, Tuple
+import time
+
+@dataclass
+class SourceMetadata:
+    """Metadati sull'origine di un'informazione."""
+    channel: str           # es: 'web', 'local', 'yfinance', 'user'
+    trust_score: float = 0.5
+    timestamp: float = field(default_factory=time.time)
+    source_url: Optional[str] = None
+    tags: List[str] = field(default_factory=list)
 
 @dataclass
 class Entity:
@@ -8,6 +18,7 @@ class Entity:
     entity_type: str  # number, concept, operator
     value: Any = None
     position: Tuple[int, int] = (0, 0)
+    source: Optional[SourceMetadata] = None
 
 @dataclass
 class Relation:
@@ -16,6 +27,7 @@ class Relation:
     relation_type: str
     object: str
     confidence: float = 1.0
+    source: Optional[SourceMetadata] = None
 
 @dataclass
 class ParsedQuery:
@@ -29,6 +41,7 @@ class ParsedQuery:
     confidence: float = 0.5
     language: str = "it"
     operation: str = "unknown"
+    channel: str = "user_interaction"
 
 @dataclass
 class DeductionStep:
@@ -92,6 +105,7 @@ class ReasoningStep:
     input: Any = None
     output: Any = None
     confidence: float = 1.0
+    channel: Optional[str] = None # Il canale utilizzato per questo passo
 
 @dataclass
 class ReasoningResult:
@@ -105,4 +119,4 @@ class ReasoningResult:
     knowledge_used: List[str] = field(default_factory=list)
     rules_used: List[str] = field(default_factory=list)
     llm_used: bool = False
-    sources: List[str] = field(default_factory=list)
+    sources: List[SourceMetadata] = field(default_factory=list)

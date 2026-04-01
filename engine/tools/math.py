@@ -24,8 +24,75 @@ class MathModule:
     def __init__(self, knowledge_graph, rule_engine):
         self.knowledge = knowledge_graph
         self.rules = rule_engine
+        self._sp = None  # Lazy loading per sympy
         self._register_advanced_rules()
         self._register_math_concepts()
+
+    def _ensure_sympy(self):
+        """Carica sympy solo se richiesto."""
+        if self._sp is None:
+            try:
+                import sympy
+                self._sp = sympy
+            except ImportError:
+                raise ImportError("Libreria 'sympy' non trovata. Installa con: pip install sympy")
+
+    def solve_symbolically(self, equation_str: str, variable: str = "x") -> dict:
+        """Risolve un'equazione in modo simbolico utilizzando sympy."""
+        self._ensure_sympy()
+        try:
+            # Pulisce l'equazione (es. "x^2 = 4" -> "x**2 - 4")
+            if "=" in equation_str:
+                left, right = equation_str.split("=")
+                expr_str = f"({left}) - ({right})"
+            else:
+                expr_str = equation_str
+            
+            expr_str = expr_str.replace("^", "**")
+            
+            x = self._sp.Symbol(variable)
+            expr = self._sp.parse_expr(expr_str)
+            solutions = self._sp.solve(expr, x)
+            
+            # Semplificazione
+            simplified = self._sp.simplify(expr)
+            
+            return {
+                "success": True,
+                "original": equation_str,
+                "solutions": [str(s) for s in solutions],
+                "simplified_expression": str(simplified),
+                "channel": "symbolic_math"
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
+
+    def calculate_calculus(self, func_str: str, variable: str = "x", 
+                           op: str = "diff") -> dict:
+        """Calcola derivate o integrali simbolici."""
+        self._ensure_sympy()
+        try:
+            x = self._sp.Symbol(variable)
+            expr = self._sp.parse_expr(func_str.replace("^", "**"))
+            
+            if op == "diff":
+                result = self._sp.diff(expr, x)
+                desc = "derivata"
+            elif op == "integrate":
+                result = self._sp.integrate(expr, x)
+                desc = "integrale"
+            else:
+                return {"success": False, "error": "Operazione non supportata"}
+                
+            return {
+                "success": True,
+                "operation": desc,
+                "expression": func_str,
+                "result": str(result),
+                "channel": "symbolic_math"
+            }
+        except Exception as e:
+            return {"success": False, "error": str(e)}
 
     def _register_advanced_rules(self):
         """Registra regole matematiche avanzate."""
