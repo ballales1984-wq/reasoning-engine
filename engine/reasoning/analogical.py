@@ -14,24 +14,7 @@ from dataclasses import dataclass, field
 from collections import Counter
 
 
-@dataclass
-class Analogy:
-    """Un'analogia trovata tra due concetti."""
-    source: str                   # Concetto di partenza
-    target: str                   # Concetto di arrivo
-    shared_relations: list        # Relazioni in comune
-    shared_properties: list       # Proprietà in comune
-    structural_similarity: float  # 0-1
-    explanation: str = ""
-
-
-@dataclass
-class AnalogyResult:
-    """Risultato di una ricerca di analogie."""
-    found: bool
-    analogies: list = field(default_factory=list)
-    best_analogy: Analogy = None
-    explanation: str = ""
+from ..core.types import Analogy, AnalogyResult
 
 
 class AnalogicalReasoner:

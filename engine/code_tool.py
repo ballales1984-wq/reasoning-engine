@@ -88,6 +88,7 @@ class CodeTool:
                 "tuple",
                 "type",
                 "zip",
+                "__import__",
             }
             import builtins
 

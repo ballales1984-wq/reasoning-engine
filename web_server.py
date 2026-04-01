@@ -262,61 +262,69 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             self.end_headers()
 
     def do_POST(self):
-        if self.path == "/api/ask":
-            length = int(self.headers["Content-Length"])
-            data = json.loads(self.rfile.read(length))
-            question = data.get("question", "")
+        try:
+            if self.path == "/api/ask":
+                length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(length))
+                question = data.get("question", "")
 
-            answer, source = self._process_question(question)
+                answer, source = self._process_question(question)
 
-            # Impara dalla risposta
-            self._learn_from_interaction(question, answer)
+                # Impara dalla risposta
+                self._learn_from_interaction(question, answer)
 
-            self.send_response(200)
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(
+                    json.dumps({"answer": answer, "source": source}).encode()
+                )
+
+            elif self.path == "/api/code/execute":
+                length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(length))
+                source_code = data.get("code", "")
+
+                result = code.execute(source_code)
+
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(result, default=str).encode())
+
+            elif self.path == "/api/search":
+                length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(length))
+                query = data.get("query", "")
+
+                result = web.search(query, max_results=5)
+
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(result, default=str).encode())
+
+            elif self.path == "/api/math/advanced":
+                length = int(self.headers["Content-Length"])
+                data = json.loads(self.rfile.read(length))
+                op = data.get("operation", "")
+                params = data.get("params", {})
+
+                result = self._advanced_math(op, params)
+
+                self.send_response(200)
+                self.send_header("Content-type", "application/json")
+                self.end_headers()
+                self.wfile.write(json.dumps(result, default=str).encode())
+
+            else:
+                self.send_response(404)
+                self.end_headers()
+        except Exception as e:
+            self.send_response(500)
             self.send_header("Content-type", "application/json")
             self.end_headers()
-            self.wfile.write(json.dumps({"answer": answer, "source": source}).encode())
-
-        elif self.path == "/api/code/execute":
-            length = int(self.headers["Content-Length"])
-            data = json.loads(self.rfile.read(length))
-            source_code = data.get("code", "")
-
-            result = code.execute(source_code)
-
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(result, default=str).encode())
-
-        elif self.path == "/api/search":
-            length = int(self.headers["Content-Length"])
-            data = json.loads(self.rfile.read(length))
-            query = data.get("query", "")
-
-            result = web.search(query, max_results=5)
-
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(result, default=str).encode())
-
-        elif self.path == "/api/math/advanced":
-            length = int(self.headers["Content-Length"])
-            data = json.loads(self.rfile.read(length))
-            op = data.get("operation", "")
-            params = data.get("params", {})
-
-            result = self._advanced_math(op, params)
-
-            self.send_response(200)
-            self.send_header("Content-type", "application/json")
-            self.end_headers()
-            self.wfile.write(json.dumps(result, default=str).encode())
-
-        else:
-            self.send_response(404)
-            self.end_headers()
+            self.wfile.write(json.dumps({"error": str(e)}).encode())
 
     def _advanced_math(self, operation, params):
         """Dispatch operazioni matematiche avanzate."""
@@ -376,10 +384,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                 }
         except Exception as e:
             return {"answer": None, "explanation": f"Errore: {e}"}
-            self.wfile.write(json.dumps({"answer": answer, "source": source}).encode())
-        else:
-            self.send_response(404)
-            self.end_headers()
 
     def _process_question(self, question):
         """Processa la domanda: engine → ollama → fallback."""
@@ -471,16 +475,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def _learn_from_interaction(self, question, answer):
         """Impara dall'interazione."""
         pass
-
-    def _learn_from_interaction(self, question, answer):
-        """Impara dall'interazione."""
-        # Salva in memoria
-        engine.memory.remember(
-            f"Q: {question} → A: {answer}",
-            memory_type="episodic",
-            tags=["interaction"],
-            importance=0.5,
-        )
 
     def log_message(self, format, *args):
         pass

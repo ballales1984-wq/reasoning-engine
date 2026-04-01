@@ -9,9 +9,32 @@ Componenti:
 
 import re
 from dataclasses import dataclass, field
+from typing import Any
 
 
-from ..core.types import Entity, ParsedQuery
+@dataclass
+class Entity:
+    """Un'entità estratta dal testo."""
+
+    name: str  # Nome dell'entità
+    entity_type: str  # number, concept, operator
+    value: Any = None  # Valore (es. 6 per "sei")
+    position: tuple = (0, 0)  # Posizione nel testo originale
+
+
+@dataclass
+class ParsedQuery:
+    """Output del parser — quello che l'engine capisce."""
+
+    raw: str  # Input originale
+    intent: str = "general"  # Intent classificato
+    entities: list = field(default_factory=list)
+    relations: list = field(default_factory=list)
+    numbers: list = field(default_factory=list)
+    operators: list = field(default_factory=list)
+    confidence: float = 0.5
+    language: str = "it"
+    operation: str = "unknown"  # Per compatibilità con engine esistente
 
 
 # ============================================================

@@ -12,24 +12,7 @@ from dataclasses import dataclass, field
 from collections import Counter
 
 
-@dataclass
-class Pattern:
-    """Un pattern estratto da esempi."""
-    description: str             # Descrizione del pattern
-    attribute: str               # L'attributo comune
-    value: any                   # Il valore comune
-    frequency: int               # Quante volte appare
-    total_examples: int          # Totale esempi analizzati
-    confidence: float = 0.0      # Frequenza / Totale
-
-
-@dataclass
-class InductionResult:
-    """Risultato di un'induzione."""
-    found: bool
-    patterns: list = field(default_factory=list)
-    rules_created: list = field(default_factory=list)
-    explanation: str = ""
+from ..core.types import Pattern, InductionResult
 
 
 class InductiveReasoner:

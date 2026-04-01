@@ -13,28 +13,7 @@ Tipi di deduzione supportati:
 from dataclasses import dataclass
 
 
-@dataclass
-class DeductionStep:
-    """Un singolo passo di deduzione."""
-    rule_type: str              # modus_ponens, syllogism, etc.
-    premise1: str               # Prima premessa
-    premise2: str               # Seconda premessa
-    conclusion: str             # Conclusione
-    confidence: float = 1.0
-
-
-@dataclass
-class DeductionResult:
-    """Risultato di una deduzione."""
-    found: bool
-    conclusion: str = ""
-    chain: list = None
-    confidence: float = 0.0
-    steps_count: int = 0
-
-    def __post_init__(self):
-        if self.chain is None:
-            self.chain = []
+from ..core.types import DeductionStep, DeductionResult
 
 
 class DeductiveReasoner:
