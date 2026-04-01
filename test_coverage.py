@@ -1,5 +1,5 @@
 """
-test_coverage.py — Coverage test completo per ReasoningEngine.
+test_coverage.py -- Coverage test completo per ReasoningEngine.
 Testa tutti i moduli principali e riporta la copertura.
 """
 
@@ -27,17 +27,17 @@ def test(module: str, name: str, func):
         func()
         results.setdefault(module, []).append(("PASS", name))
         total_passed += 1
-        print(f"  ✅ {name}")
+        print(f"  [OK] {name}")
     except Exception as e:
         results.setdefault(module, []).append(("FAIL", f"{name}: {e}"))
         total_failed += 1
-        print(f"  ❌ {name}: {e}")
+        print(f"  [FAIL] {name}: {e}")
 
 
 # ============================================================
 # 1. CORE TYPES
 # ============================================================
-print("\n🔵 CORE TYPES")
+print("\n[CORE TYPES]")
 print("-" * 40)
 
 try:
@@ -75,12 +75,12 @@ try:
     test("core_types", "ReasoningResult", test_reasoning_result)
     test("core_types", "ReasoningStep", test_reasoning_step)
 except ImportError as e:
-    print(f"  ⚠️ Import error: {e}")
+    print(f"  [WARN] Import error: {e}")
 
 # ============================================================
 # 2. NLP PARSER
 # ============================================================
-print("\n🟢 NLP PARSER")
+print("\n[NLP PARSER]")
 print("-" * 40)
 
 try:
@@ -110,7 +110,7 @@ try:
 
     def test_extract_operators():
         p = parse("15 + 27 - 3 * 2")
-        assert len(p.operators) >= 0  # Parser may or may not extract operators
+        assert len(p.operators) >= 0
 
     def test_classify_intent():
         p1 = parse("quanto fa 5 + 3")
@@ -153,12 +153,12 @@ try:
     test("nlp", "parse english", test_parse_english)
     test("nlp", "stop_words", test_stop_words)
 except ImportError as e:
-    print(f"  ⚠️ Import error: {e}")
+    print(f"  [WARN] Import error: {e}")
 
 # ============================================================
 # 3. KNOWLEDGE GRAPH
 # ============================================================
-print("\n🟡 KNOWLEDGE GRAPH")
+print("\n[KNOWLEDGE GRAPH]")
 print("-" * 40)
 
 try:
@@ -172,7 +172,7 @@ try:
     def test_kg_get():
         kg = KnowledgeGraph()
         kg.add("Test", description="upper")
-        assert kg.get("test") is not None  # case-insensitive
+        assert kg.get("test") is not None
 
     def test_kg_find():
         kg = KnowledgeGraph()
@@ -215,12 +215,12 @@ try:
     test("knowledge_graph", "save/load", test_kg_save_load)
     test("knowledge_graph", "list_all", test_kg_list_all)
 except ImportError as e:
-    print(f"  ⚠️ Import error: {e}")
+    print(f"  [WARN] Import error: {e}")
 
 # ============================================================
 # 4. RULE ENGINE
 # ============================================================
-print("\n🟠 RULE ENGINE")
+print("\n[RULE ENGINE]")
 print("-" * 40)
 
 try:
@@ -234,21 +234,19 @@ try:
     def test_rule_apply():
         rules = RuleEngine()
         rules.add_rule("test_apply", lambda a, b: a + b, "somma")
-        # apply richiede parsed_dict e known_concepts
         parsed = {"operation": "test_apply", "numbers": [3, 4]}
         result = rules.apply(parsed, {})
-        # Può restituire None se non matcha, ma non deve crashare
         assert result is None or "answer" in result
 
     test("rules", "add_rule", test_rule_add)
     test("rules", "apply", test_rule_apply)
 except ImportError as e:
-    print(f"  ⚠️ Import error: {e}")
+    print(f"  [WARN] Import error: {e}")
 
 # ============================================================
 # 5. MATH MODULE
 # ============================================================
-print("\n🔴 MATH MODULE")
+print("\n[MATH MODULE]")
 print("-" * 40)
 
 try:
@@ -304,7 +302,6 @@ try:
         r = math_mod.solve("ipotenusa 3 4")
         assert r["answer"] == 5.0
 
-    # Advanced math
     def test_math_derivative():
         r = math_mod.derivative("x**2", 3)
         assert abs(r["answer"] - 6.0) < 0.01
@@ -367,12 +364,12 @@ try:
     test("math", "matrix_multiply", test_math_matrix_multiply)
     test("math", "matrix_determinant", test_math_matrix_determinant)
 except ImportError as e:
-    print(f"  ⚠️ Import error: {e}")
+    print(f"  [WARN] Import error: {e}")
 
 # ============================================================
 # 6. ENGINE (reason, learn, save/load)
 # ============================================================
-print("\n🟣 ENGINE")
+print("\n[ENGINE]")
 print("-" * 40)
 
 try:
@@ -391,7 +388,7 @@ try:
     def test_engine_save():
         e = ReasoningEngine()
         e.save()
-        assert True  # Non deve crashare
+        assert True
 
     def test_engine_what_do_you_know():
         e = ReasoningEngine()
@@ -406,7 +403,6 @@ try:
         assert 15.0 in d["numbers"]
 
     def test_engine_fast_math():
-        """Test solo fast-path (identity). Multi-agent richiede Ollama."""
         e = ReasoningEngine()
         r = e.reason("chi sei?")
         assert r.confidence > 0.5
@@ -418,12 +414,12 @@ try:
     test("engine", "_parse_question", test_engine_parse)
     test("engine", "fast_path", test_engine_fast_math)
 except ImportError as e:
-    print(f"  ⚠️ Import error: {e}")
+    print(f"  [WARN] Import error: {e}")
 
 # ============================================================
 # 7. CODE TOOL
 # ============================================================
-print("\n🟤 CODE TOOL")
+print("\n[CODE TOOL]")
 print("-" * 40)
 
 try:
@@ -455,12 +451,12 @@ try:
     test("code", "loop", test_code_loop)
     test("code", "error handling", test_code_error)
 except ImportError as e:
-    print(f"  ⚠️ Import error: {e}")
+    print(f"  [WARN] Import error: {e}")
 
 # ============================================================
 # 8. REASONING (Deductive, Inductive, Analogical)
 # ============================================================
-print("\n⚪ REASONING")
+print("\n[REASONING]")
 print("-" * 40)
 
 try:
@@ -485,19 +481,19 @@ try:
 
     def test_analogical():
         a = AnalogicalReasoner(kg)
-        r = a.find_analogies("source", "target")
+        r = a.find_analogies("source")
         assert hasattr(r, "found")
 
     test("reasoning", "deductive", test_deductive)
     test("reasoning", "inductive", test_inductive)
     test("reasoning", "analogical", test_analogical)
 except ImportError as e:
-    print(f"  ⚠️ Import error: {e}")
+    print(f"  [WARN] Import error: {e}")
 
 # ============================================================
 # 9. VECTOR STORE
 # ============================================================
-print("\n🔷 VECTOR STORE")
+print("\n[VECTOR STORE]")
 print("-" * 40)
 
 try:
@@ -505,13 +501,13 @@ try:
 
     def test_vector_add():
         vs = VectorStore()
-        vs.data = []  # Reset for clean test
+        vs.data = []
         vs.add("test", [1.0, 0.0, 0.0], {"info": "test"})
         assert len(vs.data) >= 1
 
     def test_vector_search():
         vs = VectorStore()
-        vs.data = []  # Reset for clean test
+        vs.data = []
         vs.add("a", [1.0, 0.0, 0.0])
         vs.add("b", [0.0, 1.0, 0.0])
         results = vs.search([1.0, 0.0, 0.0], top_k=1)
@@ -523,7 +519,7 @@ try:
 
         path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "_test_vs.json")
         vs = VectorStore(storage_path=path)
-        vs.data = []  # Reset
+        vs.data = []
         vs.add("persist", [1.0, 2.0, 3.0], {"test": True})
         vs.save()
         vs2 = VectorStore(storage_path=path)
@@ -535,12 +531,12 @@ try:
     test("vector_store", "search", test_vector_search)
     test("vector_store", "save/load", test_vector_save_load)
 except ImportError as e:
-    print(f"  ⚠️ Import error: {e}")
+    print(f"  [WARN] Import error: {e}")
 
 # ============================================================
 # 10. MEMORY TOOL
 # ============================================================
-print("\n🧠 MEMORY TOOL")
+print("\n[MEMORY TOOL]")
 print("-" * 40)
 
 try:
@@ -553,19 +549,18 @@ try:
 
     def test_memory_learn():
         mem = MemoryTool()
-        # learn_text richiede Ollama per embedding, testiamo init e store
         assert mem.store.data == [] or isinstance(mem.store.data, list)
 
     test("memory", "init", test_memory_init)
     test("memory", "learn structure", test_memory_learn)
 except ImportError as e:
-    print(f"  ⚠️ Import error: {e}")
+    print(f"  [WARN] Import error: {e}")
 
 # ============================================================
 # SUMMARY
 # ============================================================
 print("\n" + "=" * 50)
-print("📊 COVERAGE TEST SUMMARY")
+print("[COVERAGE TEST SUMMARY]")
 print("=" * 50)
 
 total = total_passed + total_failed
@@ -575,18 +570,17 @@ for module, tests in results.items():
     passed = sum(1 for t in tests if t[0] == "PASS")
     total_mod = len(tests)
     pct = (passed / total_mod * 100) if total_mod > 0 else 0
-    bar = "█" * int(pct / 5) + "░" * (20 - int(pct / 5))
-    status = "✅" if pct == 100 else "⚠️" if pct >= 50 else "❌"
+    bar = "#" * int(pct / 5) + "-" * (20 - int(pct / 5))
+    status = "[OK]" if pct == 100 else "[WARN]" if pct >= 50 else "[FAIL]"
     print(f"  {status} {module:20s} {bar} {passed}/{total_mod} ({pct:.0f}%)")
 
 print(f"\n  TOTAL: {total_passed}/{total} passed ({coverage:.1f}%)")
 
-# Failed tests detail
 if total_failed > 0:
     print("\n  FAILURES:")
     for module, tests in results.items():
         for status, name in tests:
             if status == "FAIL":
-                print(f"    ❌ [{module}] {name}")
+                print(f"    [FAIL] [{module}] {name}")
 
 print()
