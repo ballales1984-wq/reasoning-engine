@@ -386,13 +386,19 @@ class Handler(http.server.SimpleHTTPRequestHandler):
             return {"answer": None, "explanation": f"Errore: {e}"}
 
     def _process_question(self, question):
-        """Processa la domanda: engine → ollama → fallback."""
+        """Processa la domanda: engine → knowledge → ollama → fallback."""
         q_lower = question.lower()
 
         # 1. Prova con l'engine (matematica, finanza, ragionamento)
         result = engine.reason(question)
         if result.answer and result.confidence > 0.7:
             return str(result.answer), "engine"
+
+        # 1b. Controlla se abbiamo già imparato questa risposta
+        key = question.strip().lower().rstrip("?").strip()
+        known = engine.knowledge.get(key)
+        if known and known.description:
+            return known.description, "learned"
 
         # 2. Ricerca web
         search_keywords = [
@@ -463,12 +469,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
                     r = finance.calculate("roi", gain=nums[1], cost=nums[0])
                     return r.explanation, "engine"
 
-        # 5. Chiedi a Ollama
+        # 5. Chiedi a Ollama e IMPARA dalla risposta
         if ollama.is_available():
             try:
                 ollama_result = ollama.generate(question, timeout=15)
                 if ollama_result.get("success") and ollama_result.get("response"):
-                    return ollama_result["response"], "ollama"
+                    response = ollama_result["response"]
+                    # Impara dalla risposta di Ollama
+                    self._learn_from_ollama(question, response)
+                    return response, "ollama"
             except Exception:
                 pass
 
@@ -478,6 +487,15 @@ class Handler(http.server.SimpleHTTPRequestHandler):
     def _learn_from_interaction(self, question, answer):
         """Impara dall'interazione."""
         pass
+
+    def _learn_from_ollama(self, question, answer):
+        """Memorizza la risposta di Ollama per risponderci in futuro."""
+        import hashlib
+
+        # Crea un concetto dalla domanda normalizzata
+        key = question.strip().lower().rstrip("?").strip()
+        # Salva nel knowledge graph
+        engine.knowledge.add(key, description=answer[:500], category="learned/ollama")
 
     def log_message(self, format, *args):
         pass

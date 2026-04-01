@@ -11,9 +11,9 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from engine import ReasoningEngine
-from engine.ollama_tool import OllamaTool
-from engine.finance_module import FinanceModule
-from engine.prompt_engineering import PromptBuilder, PromptOptimizer
+from engine.llm.ollama import OllamaTool
+from engine.tools.finance import FinanceModule
+from engine.llm.prompt_engineering import PromptBuilder, PromptOptimizer
 
 
 def print_header():
@@ -179,8 +179,8 @@ def menu_chat(engine, ollama, model_name):
             # Altrimenti usa ragionamento + Ollama
             result = engine.reason(user_input)
 
-            if result["answer"] and result["confidence"] > 0.5:
-                print(f"  🧠 {result['answer']}")
+            if result.answer and result.confidence > 0.5:
+                print(f"  🧠 {result.answer}")
             elif ollama:
                 print("  🤖 Chiedo a Ollama...")
                 llm_result = ollama.generate(user_input, model=model_name)
@@ -189,7 +189,7 @@ def menu_chat(engine, ollama, model_name):
                 else:
                     print(f"  ❌ Errore: {llm_result.get('error', 'sconosciuto')}")
             else:
-                print(f"  🧠 {result.get('answer', 'Non so rispondere')}")
+                print(f"  🧠 {result.answer if result.answer else 'Non so rispondere'}")
 
         except KeyboardInterrupt:
             print("\n  Usa :quit per uscire o :menu per il menu")
@@ -214,7 +214,7 @@ def menu_matematica(engine):
     for name, query in tests:
         if "quanto" in query:
             r = engine.reason(query)
-            print(f"  {name} = {r['answer']}")
+            print(f"  {name} = {r.answer}")
         else:
             r = engine.math.solve(query)
             print(f"  {name} = {r['answer']}")
@@ -258,7 +258,7 @@ def menu_test(engine):
     # Test matematica
     total += 1
     r = engine.reason("quanto fa 15 + 27?")
-    if r["answer"] == 42.0:
+    if r.answer == 42.0:
         print("  ✅ Addizione")
         passed += 1
     else:
