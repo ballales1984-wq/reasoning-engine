@@ -1,0 +1,42 @@
+FE
+======================================================================
+ERROR: test_02_analogical_inference (__main__.TestDeepReasoning.test_02_analogical_inference)
+Verifica che l'engine trovi l'analogia tra Atomo e Sistema Solare.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\user\Downloads\reasoning-engine\test_deep_reasoning.py", line 47, in test_02_analogical_inference
+    res = self.engine.reason(query)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\__init__.py", line 126, in reason
+    agent_res = self.agents.orchestrate(question, parsed_dict)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\agents\manager.py", line 39, in orchestrate
+    ana_output = self.analyst.process(input_data)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\agents\analyst.py", line 41, in process
+    ded_res = self.engine.deductive.deduce(entity)
+
+[Deduction Test] Esecuzione per: 'Cosa puoi dirmi del Gatto?'
+
+[Analogy Test] Esecuzione per: 'Cos'� un Atomo?'
+  File "C:\Users\user\Downloads\reasoning-engine\engine\reasoning\deductive.py", line 65, in deduce
+    return self._deduce_all(subject)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\user\Downloads\reasoning-engine\engine\reasoning\deductive.py", line 150, in _deduce_all
+    target_concept = self.knowledge.get(target)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\data\graph.py", line 158, in get
+    name_lower = name.lower()
+                 ^^^^^^^^^^
+AttributeError: 'tuple' object has no attribute 'lower'
+
+======================================================================
+FAIL: test_01_deductive_chain (__main__.TestDeepReasoning.test_01_deductive_chain)
+Verifica che l'engine deduca l'appartenenza a lunghe catene logiche.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\user\Downloads\reasoning-engine\test_deep_reasoning.py", line 37, in test_01_deductive_chain
+    self.assertIn("Animale", res.answer) # Dovrebbe aver dedotto la gerarchia
+    ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: 'Animale' not found in 'Sono ReasoningEngine v2.0, un AI che ragiona come un umano. Combino NLP, ragionamento deduttivo/induttivo/analogico, matematica avanzata, ricerca web e esecuzione codice.'
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.037s
+
+FAILED (failures=1, errors=1)
