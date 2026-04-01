@@ -84,26 +84,30 @@ class DeductiveReasoner:
 
         # Check 1: subject ha direttamente target come valore di qualunque relazione
         for rel_type, targets in concept.relations.items():
-            if target in targets:
-                step = DeductionStep(
-                    rule_type="direct",
-                    premise1=f"{subject} {rel_type} {target}",
-                    premise2="",
-                    conclusion=f"{subject} ha {target}",
-                    confidence=1.0
-                )
-                return DeductionResult(
-                    found=True,
-                    conclusion=f"{subject} → {target}",
-                    chain=[step],
-                    confidence=1.0,
-                    steps_count=1
-                )
+            # targets è una lista di tuple (target_name, channel_id) o stringhe
+            for t in targets:
+                target_name = t[0] if isinstance(t, (tuple, list)) else t
+                if target == target_name:
+                    step = DeductionStep(
+                        rule_type="direct",
+                        premise1=f"{subject} {rel_type} {target}",
+                        premise2="",
+                        conclusion=f"{subject} ha {target}",
+                        confidence=1.0
+                    )
+                    return DeductionResult(
+                        found=True,
+                        conclusion=f"{subject} → {target}",
+                        chain=[step],
+                        confidence=1.0,
+                        steps_count=1
+                    )
 
         # Check 2: ereditarietà — cerca nei parent (transitive relations)
         for rel_type, targets in concept.relations.items():
             if rel_type in self.TRANSITIVE_RELATIONS:
-                for intermediate in targets:
+                for t in targets:
+                    intermediate = t[0] if isinstance(t, (tuple, list)) else t
                     sub_result = self._deduce_to_target(intermediate, target, depth + 1, visited.copy())
                     if sub_result.found:
                         step = DeductionStep(
@@ -146,8 +150,9 @@ class DeductiveReasoner:
         # Esplora tutte le relazioni transitives
         for rel_type, targets in concept.relations.items():
             if rel_type in self.TRANSITIVE_RELATIONS:
-                for target in targets:
-                    target_concept = self.knowledge.get(target)
+                for t in targets:
+                    target_name = t[0] if isinstance(t, (tuple, list)) else t
+                    target_concept = self.knowledge.get(target_name)
                     if target_concept:
                         # Eredita proprietà dal parent
                         for parent_rel, parent_targets in target_concept.relations.items():
@@ -156,8 +161,8 @@ class DeductiveReasoner:
                                 if pt not in concept.relations.get(parent_rel, []):
                                     step = DeductionStep(
                                         rule_type="inheritance",
-                                        premise1=f"{subject} {rel_type} {target}",
-                                        premise2=f"{target} {parent_rel} {pt}",
+                                        premise1=f"{subject} {rel_type} {target_name}",
+                                        premise2=f"{target_name} {parent_rel} {pt}",
                                         conclusion=f"{subject} {parent_rel} {pt} (dedotto)",
                                         confidence=0.9 ** (depth + 1)
                                     )
@@ -166,7 +171,7 @@ class DeductiveReasoner:
                                     total_confidence *= step.confidence
 
                     # Ricorsione
-                    sub_result = self._deduce_all(target, depth + 1, visited.copy())
+                    sub_result = self._deduce_all(target_name, depth + 1, visited.copy())
                     if sub_result.found:
                         all_chain.extend(sub_result.chain)
 
