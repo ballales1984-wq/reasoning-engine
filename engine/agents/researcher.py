@@ -28,7 +28,7 @@ class ResearcherAgent(BaseAgent):
         memory_res = self.engine.memory.search_semantic(query)
         if memory_res["success"] and memory_res["matches"]:
             results.append({"source": "vector_memory", "content": memory_res["matches"]})
-            steps.append(self.create_step(f"Recuperate info semantiche: {len(memory_res['matches'])} risultati", memory_res["matches"]))
+            steps.append(self.create_step(f"Recuperate info semantiche: {len(memory_res['matches'])} risultati", memory_res["matches"], type="semantic_memory"))
 
         # 3. Ricerca Deep Browsing (se URL presente)
         if "urls" in input_data and input_data["urls"]:

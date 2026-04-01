@@ -28,7 +28,7 @@ class TestVectorMemory(unittest.TestCase):
         # Verifica che lo step 'semantic_memory' sia stato eseguito
         has_semantic_step = any(s.type == "semantic_memory" for s in res.steps)
         self.assertTrue(has_semantic_step)
-        print(f"\n✅ Recupero semantico riuscito: {res.answer[:50]}...")
+        print(f"\n[OK] Recupero semantico riuscito: {res.answer[:50]}...")
 
     def test_02_rag_fallback(self):
         """Verifica che l'engine usi il RAG solo se non trova info nel grafo."""
