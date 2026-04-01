@@ -10,7 +10,7 @@
           "22/7 (approssimazione)"
         ],
         "category": "math/constants",
-        "last_updated": 1775069269.1604114,
+        "last_updated": 1775070494.3117087,
         "trust_score": 1.0
       }
     },
@@ -30,7 +30,7 @@
           "13"
         ],
         "category": "math/numbers",
-        "last_updated": 1775069269.1604218,
+        "last_updated": 1775070494.311714,
         "trust_score": 1.0
       }
     },
@@ -47,7 +47,7 @@
           "1/3 = 0.333..."
         ],
         "category": "math/fractions",
-        "last_updated": 1775069269.160426,
+        "last_updated": 1775070494.3117166,
         "trust_score": 1.0
       }
     },
@@ -64,7 +64,7 @@
           "100% = tutto"
         ],
         "category": "math/percentages",
-        "last_updated": 1775069269.1604302,
+        "last_updated": 1775070494.3117185,
         "trust_score": 1.0
       }
     },
@@ -81,7 +81,7 @@
           "10² = 100"
         ],
         "category": "math/powers",
-        "last_updated": 1775069269.1604333,
+        "last_updated": 1775070494.3117201,
         "trust_score": 1.0
       }
     },
@@ -98,7 +98,7 @@
           "√16 = 4"
         ],
         "category": "math/roots",
-        "last_updated": 1775069269.160439,
+        "last_updated": 1775070494.311722,
         "trust_score": 1.0
       }
     },
@@ -115,7 +115,7 @@
           "5! = 120"
         ],
         "category": "math/factorial",
-        "last_updated": 1775069269.1604419,
+        "last_updated": 1775070494.3117235,
         "trust_score": 1.0
       }
     },
@@ -131,7 +131,7 @@
           "2x = 10 → x = 5"
         ],
         "category": "math/equations",
-        "last_updated": 1775069269.1604447,
+        "last_updated": 1775070494.3117251,
         "trust_score": 1.0
       }
     },
@@ -144,7 +144,7 @@
         "description": "Sono ReasoningEngine v2.0, un AI che ragiona come un umano. Combino NLP, ragionamento deduttivo/induttivo/analogico, matematica avanzata, ricerca web e esecuzione codice.",
         "examples": [],
         "category": "system",
-        "last_updated": 1775069269.1604972,
+        "last_updated": 1775070494.311757,
         "trust_score": 1.0
       }
     },
@@ -380,6 +380,61 @@
         "category": "learned/ollama",
         "last_updated": 1775069545.1380632,
         "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "TestConcept": {
+    "name": "TestConcept",
+    "channels": {
+      "web_scraping": {
+        "description": "Descrizione inaffidabile",
+        "examples": [
+          "Esempio A"
+        ],
+        "category": "general",
+        "last_updated": 1775070494.3118196,
+        "trust_score": 0.3
+      },
+      "official_source": {
+        "description": "Descrizione ufficiale",
+        "examples": [
+          "Esempio B"
+        ],
+        "category": "general",
+        "last_updated": 1775070494.3139868,
+        "trust_score": 0.9
+      }
+    },
+    "relations": {}
+  },
+  "analisi_test_series": {
+    "name": "analisi_test_series",
+    "channels": {
+      "data_analysis": {
+        "description": "Insight statistici su test_series",
+        "examples": [
+          "Media: 30.0",
+          "Trend: crescente"
+        ],
+        "category": "data/stats",
+        "last_updated": 1775070508.856153,
+        "trust_score": 0.9
+      }
+    },
+    "relations": {}
+  },
+  "prezzo_AAPL": {
+    "name": "prezzo_AAPL",
+    "channels": {
+      "financial_market": {
+        "description": "Ultimo prezzo di chiusura per AAPL",
+        "examples": [
+          "254.5500946044922 USD"
+        ],
+        "category": "finance/stocks",
+        "last_updated": 1775070508.8466084,
+        "trust_score": 0.95
       }
     },
     "relations": {}

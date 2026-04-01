@@ -11,6 +11,7 @@ from .core.types import (
     AnalogyResult,
     ReasoningStep,
     ReasoningResult,
+    SourceMetadata,
 )
 from .nlp.parser import parse
 from .reasoning.deductive import DeductiveReasoner
@@ -24,12 +25,13 @@ from .data.learner import Learner
 from .tools.math import MathModule
 from .tools.finance_data import FinancialDataTool
 from .tools.data_analyzer import DataAnalysisTool
+from .tools.memory_tool import MemoryTool
 from .llm.bridge import LLMBridge, LLMClient
 
 
 class ReasoningEngine:
     """
-    Il cervello principale. Coordina tutti i componenti.
+    Il cervello principale. Coordina tutti i componenti, incluse le diverse memorie.
     """
 
     def __init__(self, llm_api_key: str = None, llm_model: str = "gpt-4o-mini"):
@@ -42,6 +44,7 @@ class ReasoningEngine:
         self.math = MathModule(self.knowledge, self.rules)
         self.finance_data = FinancialDataTool(self)
         self.data_analyzer = DataAnalysisTool(self)
+        self.memory = MemoryTool(self)  # Long-term semantic memory
         self.deductive = DeductiveReasoner(self.knowledge, self.rules)
         self.inductive = InductiveReasoner(self.knowledge, self.rules)
         self.analogical = AnalogicalReasoner(self.knowledge)
@@ -117,91 +120,102 @@ class ReasoningEngine:
             )
         )
 
-        # Step 2: Knowledge Lookup
+        # Step 2: Knowledge Lookup (Short-term / Structured)
         known_concepts = self.knowledge.find(parsed_dict["entities"])
         sources_used = []
-
+        
         for entity, info in known_concepts.items():
             if info:
                 best_info = info.get_best_info()
-                steps.append(
-                    ReasoningStep(
-                        type="lookup",
-                        description=f"Conoscenza: '{entity}' da {best_info['channel']} (fiducia {best_info['trust_score']})",
-                        output=info,
-                        channel=best_info["channel"],
-                    )
-                )
-                sources_used.append(
-                    SourceMetadata(
-                        channel=best_info["channel"],
-                        trust_score=best_info["trust_score"],
-                    )
-                )
+                steps.append(ReasoningStep(
+                    type="lookup",
+                    description=f"Conoscenza: '{entity}' da {best_info['channel']} (fiducia {best_info['trust_score']})",
+                    output=info,
+                    channel=best_info['channel']
+                ))
+                sources_used.append(SourceMetadata(
+                    channel=best_info['channel'],
+                    trust_score=best_info['trust_score']
+                ))
+
+        # Step 2b: Semantic Memory Lookup (Long-term / RAG)
+        # Se non abbiamo abbastanza info, cerchiamo nella memoria vettoriale
+        result_data = None
+        if not sources_used:
+            memory_res = self.memory.search_semantic(question)
+            if memory_res["success"] and memory_res["matches"]:
+                best_match = memory_res["matches"][0]
+                steps.append(ReasoningStep(
+                    type="semantic_memory",
+                    description=f"Recupero semantico: '{best_match['text'][:50]}...'",
+                    output=best_match,
+                    channel=self.memory.channel_name
+                ))
+                sources_used.append(SourceMetadata(
+                    channel=self.memory.channel_name,
+                    trust_score=self.memory.trust_score
+                ))
+                # Forniamo il testo recuperato come "risultato" provvisorio per il ragionamento
+                result_data = {
+                    "answer": best_match["text"],
+                    "rule_used": "semantic_retrieval",
+                    "confidence": best_match["score"],
+                    "explanation": f"Informazione recuperata dalla memoria a lungo termine (RAG)."
+                }
 
         # Step 3: Reasoning Pipeline
-        result_data = None
-
-        # Step 3.0: Identity Handling
-        if parsed.intent == "identity":
-            identity = self.knowledge.get("self_identity")
-            if identity:
-                best_info = identity.get_best_info()
-                result_data = {
-                    "answer": best_info["description"],
-                    "rule_used": "identity",
-                    "confidence": 1.0,
-                    "explanation": "Accesso alla base di conoscenza interna (self_identity).",
-                }
-                steps.append(
-                    ReasoningStep(
+        if result_data is None:
+            # Step 3.0: Identity Handling
+            if parsed.intent == "identity":
+                identity = self.knowledge.get("self_identity")
+                if identity:
+                    best_info = identity.get_best_info()
+                    result_data = {
+                        "answer": best_info["description"],
+                        "rule_used": "identity",
+                        "confidence": 1.0,
+                        "explanation": "Accesso alla base di conoscenza interna (self_identity)."
+                    }
+                    steps.append(ReasoningStep(
                         type="identity",
                         description="Identificazione dell'engine",
                         output=result_data,
-                        channel="system",
-                    )
-                )
+                        channel="system"
+                    ))
 
-        # Step 3.1: Financial Data (if intent or ticker detected)
-        if result_data is None and (
-            parsed.intent == "finance"
-            or any(e.name.isupper() and len(e.name) <= 5 for e in parsed.entities)
-        ):
-            # Cerca ticker tra le entità
-            tickers = [
-                e.name for e in parsed.entities if e.name.isupper() and len(e.name) <= 5
-            ]
-            if tickers:
-                ticker = tickers[0]
-                finance_res = self.finance_data.get_stock_price(ticker)
-                if finance_res["success"]:
-                    result_data = {
-                        "answer": f"Il prezzo attuale di {ticker} è {finance_res['price']} {finance_res['currency']}.",
-                        "rule_used": "financial_market_api",
-                        "confidence": 0.95,
-                        "explanation": f"Dati recuperati in tempo reale tramite Canale: {self.finance_data.channel_name}",
-                    }
-                    steps.append(
-                        ReasoningStep(
+            # Step 3.1: Financial Data (if intent or ticker detected)
+            if result_data is None and (parsed.intent == "finance" or any(e.name.isupper() and len(e.name) <= 5 for e in parsed.entities)):
+                # Cerca ticker tra le entità
+                tickers = [e.name for e in parsed.entities if e.name.isupper() and len(e.name) <= 5]
+                if tickers:
+                    ticker = tickers[0]
+                    finance_res = self.finance_data.get_stock_price(ticker)
+                    if finance_res["success"]:
+                        result_data = {
+                            "answer": f"Il prezzo attuale di {ticker} è {finance_res['price']} {finance_res['currency']}.",
+                            "rule_used": "financial_market_api",
+                            "confidence": 0.95,
+                            "explanation": f"Dati recuperati in tempo reale tramite Canale: {self.finance_data.channel_name}"
+                        }
+                        steps.append(ReasoningStep(
                             type="financial",
                             description=f"Recupero dati mercato per {ticker}",
                             output=finance_res,
-                            channel=self.finance_data.channel_name,
+                            channel=self.finance_data.channel_name
+                        ))
+
+            # Try Rule Engine (Base)
+            if result_data is None:
+                base_result = self.rules.apply(parsed_dict, known_concepts)
+                if base_result:
+                    result_data = base_result
+                    steps.append(
+                        ReasoningStep(
+                            type="rule_engine",
+                            description="Applicata regola base logica",
+                            output=base_result,
                         )
                     )
-
-        # Try Rule Engine (Base)
-        if result_data is None:
-            base_result = self.rules.apply(parsed_dict, known_concepts)
-            if base_result:
-                result_data = base_result
-                steps.append(
-                    ReasoningStep(
-                        type="rule_engine",
-                        description="Applicata regola base logica",
-                        output=base_result,
-                    )
-                )
 
         # Try Math (if needed)
         if result_data is None and parsed.operation != "unknown":

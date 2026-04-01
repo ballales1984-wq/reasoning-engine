@@ -1,0 +1,29 @@
+EE
+======================================================================
+ERROR: test_01_learn_and_search (__main__.TestVectorMemory.test_01_learn_and_search)
+Verifica che l'engine possa imparare e ritrovare un testo semanticamente.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\user\Downloads\reasoning-engine\test_vector_memory.py", line 24, in test_01_learn_and_search
+    res = self.engine.reason("Dove si trova Parigi?")
+  File "C:\Users\user\Downloads\reasoning-engine\engine\__init__.py", line 153, in reason
+    sources_used.append(SourceMetadata(
+                        ^^^^^^^^^^^^^^
+NameError: name 'SourceMetadata' is not defined
+
+======================================================================
+ERROR: test_02_rag_fallback (__main__.TestVectorMemory.test_02_rag_fallback)
+Verifica che l'engine usi il RAG solo se non trova info nel grafo.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\user\Downloads\reasoning-engine\test_vector_memory.py", line 38, in test_02_rag_fallback
+    res = self.engine.reason("Cosa sai del progetto segreto X100?")
+  File "C:\Users\user\Downloads\reasoning-engine\engine\__init__.py", line 153, in reason
+    sources_used.append(SourceMetadata(
+                        ^^^^^^^^^^^^^^
+NameError: name 'SourceMetadata' is not defined
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.047s
+
+FAILED (errors=2)

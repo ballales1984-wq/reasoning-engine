@@ -314,8 +314,8 @@ WORD_NUMBERS = {
 
 
 def tokenize(text: str) -> list[str]:
-    """Splitta il testo in token significativi."""
-    text = text.strip().lower()
+    """Splitta il testo in token significativi, preservando il case."""
+    text = text.strip()
     # Rimuovi punteggiatura eccetto operatori matematici
     text = re.sub(r'[.,;:!?"\'()]', " ", text)
     tokens = text.split()
@@ -663,15 +663,17 @@ def extract_concepts(text: str) -> list[str]:
     }
 
     for token in tokens:
-        # Salta numeri, stop words, noise, parole spurie
-        if token in STOP_WORDS or token in spurious:
+        # Verifica in minuscolo per stop words e spurious
+        token_lower = token.lower()
+        if token_lower in STOP_WORDS or token_lower in spurious:
             continue
-        if token in NOISE_WORDS:
+        if token_lower in NOISE_WORDS:
             continue
         if re.match(r"^-?\d+\.?\d*$", token):
             continue
         if len(token) < 2:
             continue
+        # Aggiunge il token originale (preservando il case)
         concepts.append(token)
 
     return concepts
