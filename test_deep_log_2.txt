@@ -1,0 +1,51 @@
+EE
+======================================================================
+ERROR: test_01_deductive_chain (__main__.TestDeepReasoning.test_01_deductive_chain)
+Verifica che l'engine deduca l'appartenenza a lunghe catene logiche.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\user\Downloads\reasoning-engine\test_deep_reasoning.py", line 34, in test_01_deductive_chain
+    res = self.engine.reason(query)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\__init__.py", line 126, in reason
+    agent_res = self.agents.orchestrate(question, parsed_dict)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\agents\manager.py", line 39, in orchestrate
+    ana_output = self.analyst.process(input_data)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\agents\analyst.py", line 41, in process
+    ded_res = self.engine.deductive.deduce(entity)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\reasoning\deductive.py", line 65, in deduce
+    return self._deduce_all(subject)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\user\Downloads\reasoning-engine\engine\reasoning\deductive.py", line 164, in _deduce_all
+    premise1=f"{subject} {rel_type} {target}",
+                                     ^^^^^^
+NameError: name 'target' is not defined. Did you mean: 'targets'?
+
+======================================================================
+ERROR: test_02_analogical_inference (__main__.TestDeepReasoning.test_02_analogical_inference)
+Verifica che l'engine trovi l'analogia tra Atomo e Sistema Solare.
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "C:\Users\user\Downloads\reasoning-engine\test_deep_reasoning.py", line 47, in test_02_analogical_inference
+    res = self.engine.reason(query)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\__init__.py", line 126, in reason
+    agent_res = self.agents.orchestrate(question, parsed_dict)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\agents\manager.py", line 39, in orchestrate
+    ana_output = self.analyst.process(input_data)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\agents\analyst.py", line 41, in process
+    ded_res = self.engine.deductive.deduce(entity)
+  File "C:\Users\user\Downloads\reasoning-engine\engine\reasoning\deductive.py", line 65, in deduce
+    return self._deduce_all(subject)
+           ~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "C:\Users\user\Downloads\reasoning-engine\engine\reasoning\deductive.py", line 174, in _deduce_all
+    sub_result = self._deduce_all(target, depth + 1, visited.copy())
+                                  ^^^^^^
+NameError: name 'target' is not defined. Did you mean: 'targets'?
+
+----------------------------------------------------------------------
+Ran 2 tests in 0.037s
+
+FAILED (errors=2)
+
+[Deduction Test] Esecuzione per: 'Cosa puoi dirmi del Gatto?'
+
+[Analogy Test] Esecuzione per: 'Cos'� un Atomo?'
