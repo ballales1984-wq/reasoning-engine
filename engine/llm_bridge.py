@@ -19,16 +19,18 @@ from typing import Any
 @dataclass
 class LLMResponse:
     """Risposta strutturata dall'LLM."""
-    raw: str                           # Risposta grezza
-    facts: list = field(default_factory=list)      # Fatti estratti
-    confidence: float = 0.0            # Confidenza assegnata
-    verified: bool = False             # Verificato dall'engine?
-    source: str = "llm"               # Fonte della conoscenza
+
+    raw: str  # Risposta grezza
+    facts: list = field(default_factory=list)  # Fatti estratti
+    confidence: float = 0.0  # Confidenza assegnata
+    verified: bool = False  # Verificato dall'engine?
+    source: str = "llm"  # Fonte della conoscenza
 
 
 @dataclass
 class ExtractedFact:
     """Un fatto estratto dalla risposta dell'LLM."""
+
     subject: str
     relation: str
     value: str
@@ -42,8 +44,13 @@ class LLMClient:
     Supporta OpenAI, Anthropic, o qualsiasi API compatibile.
     """
 
-    def __init__(self, provider: str = "openai", model: str = "gpt-4o-mini",
-                 api_key: str = None, base_url: str = None):
+    def __init__(
+        self,
+        provider: str = "openai",
+        model: str = "gpt-4o-mini",
+        api_key: str = None,
+        base_url: str = None,
+    ):
         self.provider = provider
         self.model = model
         self.api_key = api_key
@@ -62,15 +69,25 @@ class LLMClient:
         """Lazy init del client HTTP."""
         if self._client is None:
             import urllib.request
+
             self._client = urllib.request
         return self._client
 
-    def ask(self, prompt: str, system: str = None, max_tokens: int = 500) -> str:
+    def ask(
+        self,
+        prompt: str,
+        system: str = None,
+        max_tokens: int = 500,
+        max_retries: int = 3,
+        retry_delay: float = 2.0,
+    ) -> str:
         """
         Manda un prompt all'LLM e ritorna la risposta testuale.
+        Retry automatico per errori transitori (503, 429, 500).
         """
         import urllib.request
         import urllib.error
+        import time
 
         messages = []
         if system:
@@ -81,30 +98,44 @@ class LLMClient:
             "model": self.model,
             "messages": messages,
             "max_tokens": max_tokens,
-            "temperature": 0.3,  # Bassa temperatura per risposte fattuali
+            "temperature": 0.3,
         }
 
         data = json.dumps(payload).encode("utf-8")
         url = f"{self.base_url}/chat/completions"
 
-        req = urllib.request.Request(
-            url,
-            data=data,
-            headers={
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {self.api_key}",
-            }
-        )
+        last_error = None
+        for attempt in range(max_retries):
+            req = urllib.request.Request(
+                url,
+                data=data,
+                headers={
+                    "Content-Type": "application/json",
+                    "Authorization": f"Bearer {self.api_key}",
+                },
+            )
 
-        try:
-            with urllib.request.urlopen(req, timeout=30) as resp:
-                result = json.loads(resp.read().decode("utf-8"))
-                return result["choices"][0]["message"]["content"]
-        except urllib.error.HTTPError as e:
-            error_body = e.read().decode("utf-8") if e.fp else str(e)
-            return f"ERRORE LLM: {e.code} - {error_body}"
-        except Exception as e:
-            return f"ERRORE LLM: {str(e)}"
+            try:
+                with urllib.request.urlopen(req, timeout=30) as resp:
+                    result = json.loads(resp.read().decode("utf-8"))
+                    return result["choices"][0]["message"]["content"]
+            except urllib.error.HTTPError as e:
+                error_body = e.read().decode("utf-8") if e.fp else str(e)
+                last_error = f"ERRORE LLM: {e.code} - {error_body}"
+                if e.code in (429, 500, 502, 503, 504) and attempt < max_retries - 1:
+                    wait = retry_delay * (2**attempt)
+                    time.sleep(wait)
+                    continue
+                return last_error
+            except Exception as e:
+                last_error = f"ERRORE LLM: {str(e)}"
+                if attempt < max_retries - 1:
+                    wait = retry_delay * (2**attempt)
+                    time.sleep(wait)
+                    continue
+                return last_error
+
+        return last_error or "ERRORE LLM: max retries raggiunto"
 
     def is_configured(self) -> bool:
         """Verifica se il client è configurato."""
@@ -165,12 +196,14 @@ Rispondi SOLO con il JSON, nient'altro."""
         response.confidence = sum(f.confidence for f in facts) / max(len(facts), 1)
         response.verified = all(f.verifiable for f in facts) if facts else False
 
-        self.history.append({
-            "action": "provide_knowledge",
-            "concept": concept,
-            "facts_count": len(facts),
-            "confidence": response.confidence
-        })
+        self.history.append(
+            {
+                "action": "provide_knowledge",
+                "concept": concept,
+                "facts_count": len(facts),
+                "confidence": response.confidence,
+            }
+        )
 
         return response
 
@@ -212,19 +245,23 @@ Se non sei sicuro, metti confidenza bassa. Mai inventare numeri."""
         # Parsa risposta
         result = self._parse_solve_response(raw)
         if result:
-            response.facts = [ExtractedFact(
-                subject=question,
-                relation="risposta",
-                value=str(result.get("risposta", "")),
-                confidence=result.get("confidenza", 0.5)
-            )]
+            response.facts = [
+                ExtractedFact(
+                    subject=question,
+                    relation="risposta",
+                    value=str(result.get("risposta", "")),
+                    confidence=result.get("confidenza", 0.5),
+                )
+            ]
             response.confidence = result.get("confidenza", 0.5)
 
-        self.history.append({
-            "action": "fallback_solve",
-            "question": question,
-            "confidence": response.confidence
-        })
+        self.history.append(
+            {
+                "action": "fallback_solve",
+                "question": question,
+                "confidence": response.confidence,
+            }
+        )
 
         return response
 
@@ -232,8 +269,9 @@ Se non sei sicuro, metti confidenza bassa. Mai inventare numeri."""
     # RUOLO 3: NL Generator
     # ============================================================
 
-    def generate_explanation(self, reasoning_steps: list[str],
-                             answer: Any, question: str) -> str:
+    def generate_explanation(
+        self, reasoning_steps: list[str], answer: Any, question: str
+    ) -> str:
         """
         Converte il ragionamento dell'engine in linguaggio naturale.
         """
@@ -241,7 +279,7 @@ Se non sei sicuro, metti confidenza bassa. Mai inventare numeri."""
             # Fallback senza LLM
             return self._generate_simple_explanation(reasoning_steps, answer)
 
-        steps_text = "\n".join(f"{i+1}. {s}" for i, s in enumerate(reasoning_steps))
+        steps_text = "\n".join(f"{i + 1}. {s}" for i, s in enumerate(reasoning_steps))
 
         prompt = f"""Converti questi passaggi di ragionamento in una spiegazione chiara e naturale in italiano.
 
@@ -281,7 +319,9 @@ Rispondi in formato JSON:
 
 Rispondi SOLO con il JSON."""
 
-        system = "Sei un analista di pattern. Trova regole generali da esempi specifici."
+        system = (
+            "Sei un analista di pattern. Trova regole generali da esempi specifici."
+        )
 
         raw = self.llm.ask(prompt, system=system, max_tokens=300)
         response = LLMResponse(raw=raw, source="llm")
@@ -289,12 +329,14 @@ Rispondi SOLO con il JSON."""
         result = self._parse_json_response(raw)
         if result:
             response.confidence = result.get("confidenza", 0.5)
-            response.facts = [ExtractedFact(
-                subject="pattern",
-                relation="regola",
-                value=result.get("regola", ""),
-                confidence=response.confidence
-            )]
+            response.facts = [
+                ExtractedFact(
+                    subject="pattern",
+                    relation="regola",
+                    value=result.get("regola", ""),
+                    confidence=response.confidence,
+                )
+            ]
 
         return response
 
@@ -312,39 +354,50 @@ Rispondi SOLO con il JSON."""
 
         # Descrizione
         if "descrizione" in data:
-            facts.append(ExtractedFact(
-                subject=concept, relation="descrizione",
-                value=data["descrizione"], confidence=0.9
-            ))
+            facts.append(
+                ExtractedFact(
+                    subject=concept,
+                    relation="descrizione",
+                    value=data["descrizione"],
+                    confidence=0.9,
+                )
+            )
 
         # Categoria
         if "categoria" in data:
-            facts.append(ExtractedFact(
-                subject=concept, relation="categoria",
-                value=data["categoria"], confidence=0.85
-            ))
+            facts.append(
+                ExtractedFact(
+                    subject=concept,
+                    relation="categoria",
+                    value=data["categoria"],
+                    confidence=0.85,
+                )
+            )
 
         # Proprietà
         for prop in data.get("proprietà", data.get("proprieta", [])):
-            facts.append(ExtractedFact(
-                subject=concept, relation="ha_propietà",
-                value=prop, confidence=0.8
-            ))
+            facts.append(
+                ExtractedFact(
+                    subject=concept, relation="ha_propietà", value=prop, confidence=0.8
+                )
+            )
 
         # Esempi
         for ex in data.get("esempi", []):
-            facts.append(ExtractedFact(
-                subject=concept, relation="ha_esempio",
-                value=ex, confidence=0.85
-            ))
+            facts.append(
+                ExtractedFact(
+                    subject=concept, relation="ha_esempio", value=ex, confidence=0.85
+                )
+            )
 
         # Relazioni
         for rel in data.get("relazioni", []):
             if isinstance(rel, list) and len(rel) == 3:
-                facts.append(ExtractedFact(
-                    subject=rel[0], relation=rel[1],
-                    value=rel[2], confidence=0.7
-                ))
+                facts.append(
+                    ExtractedFact(
+                        subject=rel[0], relation=rel[1], value=rel[2], confidence=0.7
+                    )
+                )
 
         return facts
 
@@ -376,7 +429,7 @@ Rispondi SOLO con il JSON."""
         end = text.rfind("}")
         if start != -1 and end != -1:
             try:
-                return json.loads(text[start:end+1])
+                return json.loads(text[start : end + 1])
             except json.JSONDecodeError:
                 pass
 
