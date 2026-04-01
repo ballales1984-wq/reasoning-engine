@@ -452,8 +452,8 @@ INTENT_PATTERNS = {
     "identity": [
         r"chi [èe]i",
         r"come ti chiami",
-        r"cosa (sei|fai|puoi)",
-        r"qual[ei] (sono|è) (le tue|il tuo|la tua)",
+        r"cosa (sei|fai|puoi fare|puoi dirmi di te)",
+        r"qual[ei] (sono|è) (le tue|il tuo|la tua) (funzioni|obiettivi|caratteristiche)",
         r"dimmi di te",
         r"chi sei",
         r"cosa puoi fare",
