@@ -1,0 +1,387 @@
+{
+  "pi greco": {
+    "name": "pi greco",
+    "channels": {
+      "local": {
+        "description": "Il rapporto tra circonferenza e diametro di un cerchio, circa 3.14159",
+        "examples": [
+          "3.14159...",
+          "π",
+          "22/7 (approssimazione)"
+        ],
+        "category": "math/constants",
+        "last_updated": 1775069269.1604114,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "numero primo": {
+    "name": "numero primo",
+    "channels": {
+      "local": {
+        "description": "Un numero divisibile solo per 1 e per se stesso",
+        "examples": [
+          "2",
+          "3",
+          "5",
+          "7",
+          "11",
+          "13"
+        ],
+        "category": "math/numbers",
+        "last_updated": 1775069269.1604218,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "frazione": {
+    "name": "frazione",
+    "channels": {
+      "local": {
+        "description": "Una parte di un intero, scritta come numeratore/denominatore",
+        "examples": [
+          "1/2 = 0.5",
+          "3/4 = 0.75",
+          "1/3 = 0.333..."
+        ],
+        "category": "math/fractions",
+        "last_updated": 1775069269.160426,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "percentuale": {
+    "name": "percentuale",
+    "channels": {
+      "local": {
+        "description": "Una parte per cento. 50% = 50/100 = 0.5",
+        "examples": [
+          "50% = metà",
+          "25% = un quarto",
+          "100% = tutto"
+        ],
+        "category": "math/percentages",
+        "last_updated": 1775069269.1604302,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "potenza": {
+    "name": "potenza",
+    "channels": {
+      "local": {
+        "description": "Moltiplicare un numero per se stesso n volte. 2³ = 2×2×2 = 8",
+        "examples": [
+          "2² = 4",
+          "3³ = 27",
+          "10² = 100"
+        ],
+        "category": "math/powers",
+        "last_updated": 1775069269.1604333,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "radice quadrata": {
+    "name": "radice quadrata",
+    "channels": {
+      "local": {
+        "description": "Il numero che moltiplicato per se stesso dà il risultato. √9 = 3",
+        "examples": [
+          "√4 = 2",
+          "√9 = 3",
+          "√16 = 4"
+        ],
+        "category": "math/roots",
+        "last_updated": 1775069269.160439,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "fattoriale": {
+    "name": "fattoriale",
+    "channels": {
+      "local": {
+        "description": "Il prodotto di tutti i numeri da 1 a n. 5! = 5×4×3×2×1 = 120",
+        "examples": [
+          "3! = 6",
+          "4! = 24",
+          "5! = 120"
+        ],
+        "category": "math/factorial",
+        "last_updated": 1775069269.1604419,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "equazione": {
+    "name": "equazione",
+    "channels": {
+      "local": {
+        "description": "Un'uguaglianza con una o più incognite da risolvere",
+        "examples": [
+          "x + 3 = 7 → x = 4",
+          "2x = 10 → x = 5"
+        ],
+        "category": "math/equations",
+        "last_updated": 1775069269.1604447,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "self_identity": {
+    "name": "self_identity",
+    "channels": {
+      "system": {
+        "description": "Sono ReasoningEngine v2.0, un AI che ragiona come un umano. Combino NLP, ragionamento deduttivo/induttivo/analogico, matematica avanzata, ricerca web e esecuzione codice.",
+        "examples": [],
+        "category": "system",
+        "last_updated": 1775069269.1604972,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "GPT-5": {
+    "name": "GPT-5",
+    "channels": {
+      "web_rumors": {
+        "description": "Il prossimo grande modello di OpenAI",
+        "examples": [
+          "Un modello futuro",
+          "Molto potente"
+        ],
+        "category": "general",
+        "last_updated": 1775069195.5402536,
+        "trust_score": 0.3
+      },
+      "official_news": {
+        "description": "Generative Pre-trained Transformer 5",
+        "examples": [
+          "Internal project",
+          "Coming 2025"
+        ],
+        "category": "general",
+        "last_updated": 1775069195.6118178,
+        "trust_score": 0.9
+      }
+    },
+    "relations": {}
+  },
+  "interesse_semplice": {
+    "name": "interesse_semplice",
+    "channels": {
+      "local": {
+        "description": "Interesse calcolato solo sul capitale iniziale. Formula: I = P × r × t",
+        "examples": [
+          "1000€ al 5% per 2 anni = 100€ di interesse"
+        ],
+        "category": "finance/interest",
+        "last_updated": 1775069269.1605508,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "interesse_composto": {
+    "name": "interesse_composto",
+    "channels": {
+      "local": {
+        "description": "Interesse calcolato su capitale + interessi precedenti. L'interesse genera interesse.",
+        "examples": [
+          "1000€ al 5% per 2 anni = 102.5€ (non 100€)"
+        ],
+        "category": "finance/interest",
+        "last_updated": 1775069269.1605592,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "roi": {
+    "name": "roi",
+    "channels": {
+      "local": {
+        "description": "Return on Investment. Misura la redditività di un investimento.",
+        "examples": [
+          "Investi 1000€, guadagni 1200€ → ROI = 20%"
+        ],
+        "category": "finance/metrics",
+        "last_updated": 1775069269.1605637,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "diversificazione": {
+    "name": "diversificazione",
+    "channels": {
+      "local": {
+        "description": "Distribuire gli investimenti su diversi asset per ridurre il rischio.",
+        "examples": [
+          "Non mettere tutte le uova nello stesso paniere"
+        ],
+        "category": "finance/strategy",
+        "last_updated": 1775069269.1605673,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "inflazione": {
+    "name": "inflazione",
+    "channels": {
+      "local": {
+        "description": "Aumento generale dei prezzi. Riduce il potere d'acquisto nel tempo.",
+        "examples": [
+          "Se l'inflazione è 3%, 100€ oggi valgono 97€ tra un anno"
+        ],
+        "category": "finance/concepts",
+        "last_updated": 1775069269.1605856,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "liquidita": {
+    "name": "liquidita",
+    "channels": {
+      "local": {
+        "description": "Facilità con cui un asset può essere convertito in denaro.",
+        "examples": [
+          "Contanti = alta liquidità, immobili = bassa liquidità"
+        ],
+        "category": "finance/concepts",
+        "last_updated": 1775069269.1605906,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "costo_opportunita": {
+    "name": "costo_opportunita",
+    "channels": {
+      "local": {
+        "description": "Il costo di non poter fare qualcos'altro con le stesse risorse.",
+        "examples": [
+          "Se investi in azioni, il costo opportunità è il rendimento obbligazionario perso"
+        ],
+        "category": "finance/concepts",
+        "last_updated": 1775069269.1605937,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "rendimento": {
+    "name": "rendimento",
+    "channels": {
+      "local": {
+        "description": "Il guadagno o la perdita di un investimento espresso in percentuale.",
+        "examples": [
+          "Investi 1000€, valgono 1100€ → rendimento 10%"
+        ],
+        "category": "finance/metrics",
+        "last_updated": 1775069269.160597,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "rischio": {
+    "name": "rischio",
+    "channels": {
+      "local": {
+        "description": "La possibilità che un investimento perda valore.",
+        "examples": [
+          "Azioni = alto rischio, obbligazioni statali = basso rischio"
+        ],
+        "category": "finance/concepts",
+        "last_updated": 1775069269.1605997,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "obbligazione": {
+    "name": "obbligazione",
+    "channels": {
+      "local": {
+        "description": "Titolo di debito. L'emittente si impegna a restituire il capitale + interessi.",
+        "examples": [
+          "BOT, BTP, corporate bond"
+        ],
+        "category": "finance/instruments",
+        "last_updated": 1775069269.1606028,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "azione": {
+    "name": "azione",
+    "channels": {
+      "local": {
+        "description": "Partecipazione in una società. Dà diritto a dividendi e plusvalenze.",
+        "examples": [
+          "Azione Apple, azione Enel"
+        ],
+        "category": "finance/instruments",
+        "last_updated": 1775069269.1606057,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "fondi_comuni": {
+    "name": "fondi_comuni",
+    "channels": {
+      "local": {
+        "description": "Raccolta di capitale di molti investitori, gestito da professionisti.",
+        "examples": [
+          "Fondo azionario, fondo bilanciato, ETF"
+        ],
+        "category": "finance/instruments",
+        "last_updated": 1775069269.1606092,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "etf": {
+    "name": "etf",
+    "channels": {
+      "local": {
+        "description": "Exchange Traded Fund. Fondo negoziato in borsa, generalmente replica un indice.",
+        "examples": [
+          "ETF S&P500, ETF MSCI World"
+        ],
+        "category": "finance/instruments",
+        "last_updated": 1775069269.1606147,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "ciao": {
+    "name": "ciao",
+    "channels": {
+      "local": {
+        "description": "Ciao! Come stai? 😊 \n\nWhat's up? Do you want to talk about anything in particular, or just want to say hello?",
+        "examples": [],
+        "category": "learned/ollama",
+        "last_updated": 1775069545.1380632,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  }
+}

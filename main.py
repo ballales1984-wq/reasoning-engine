@@ -170,10 +170,18 @@ def menu_chat(engine, ollama, model_name):
                 print(f"  {p.prompt[:300]}...")
                 continue
 
-            if user_input.startswith(":learn "):
-                concept = user_input[7:]
-                engine.learn(concept, examples=[], description=concept)
-                print(f"  → Imparato: {concept}")
+            if user_input.startswith(":math "):
+                expr = user_input[6:]
+                # Prova prima la risoluzione simbolica
+                if "x" in expr or "=" in expr:
+                    result = engine.math.solve_symbolically(expr)
+                    if result["success"]:
+                        print(f"  → Soluzioni simboliche: {result['solutions']}")
+                        print(f"  → Espressione semplificata: {result['simplified_expression']}")
+                        continue
+                
+                result = engine.math.solve(expr)
+                print(f"  → {result['explanation']}")
                 continue
 
             # Altrimenti usa ragionamento + Ollama
@@ -181,15 +189,26 @@ def menu_chat(engine, ollama, model_name):
 
             if result.answer and result.confidence > 0.5:
                 print(f"  🧠 {result.answer}")
+                # Mostra la fonte se disponibile
+                if result.sources:
+                    best_source = max(result.sources, key=lambda s: s.trust_score)
+                    print(f"     [Certificato da Canale: {best_source.channel} | Confidenza: {result.confidence:.2f}]")
             elif ollama:
                 print("  🤖 Chiedo a Ollama...")
                 llm_result = ollama.generate(user_input, model=model_name)
                 if llm_result.get("success"):
                     print(f"  → {llm_result['response'][:300]}")
+                    print(f"     [Canale: ollama (fallback)]")
                 else:
                     print(f"  ❌ Errore: {llm_result.get('error', 'sconosciuto')}")
             else:
                 print(f"  🧠 {result.answer if result.answer else 'Non so rispondere'}")
+
+            if user_input.startswith(":learn "):
+                concept = user_input[7:]
+                engine.learn(concept, examples=[], description=concept)
+                print(f"  → Imparato: {concept}")
+                continue
 
         except KeyboardInterrupt:
             print("\n  Usa :quit per uscire o :menu per il menu")
