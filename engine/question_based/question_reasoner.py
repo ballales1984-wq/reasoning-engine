@@ -44,7 +44,7 @@ class QuestionReasoner:
         top = self.hypothesis_space.get_top_hypothesis()
         confidence = top.probability if top else 0
 
-        self.updater.soft_update(self.hypothesis_space, question, answer, strength=0.3)
+        self.updater.soft_update(self.hypothesis_space, question, answer, strength=0.5)
 
         new_top = self.hypothesis_space.get_top_hypothesis()
         new_confidence = new_top.probability if new_top else 0
