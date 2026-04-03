@@ -43,18 +43,25 @@ def benchmark_llm():
     prompt = "Spiega brevemente cos'è l'entropia."
     print(f"Richiesta in corso con accelerazione GPU...")
     
-    start = time.perf_counter()
-    res = ollama.generate(prompt)
-    duration = time.perf_counter() - start
-    
-    if res["success"]:
-        print(f"Risposta ricevuta in {duration:.2f}s")
-        # Ollama restituisce eval_duration in nanosecondi
-        eval_sec = res.get("eval_duration", 0) / 1e9
-        avg_tokens_sec = res.get("eval_count", 0) / eval_sec if eval_sec > 0 else 0
-        print(f"Velocità generazione: {avg_tokens_sec:.2f} tokens/s")
+    # Prova con retry se circa 1° login: gestione utilità.
+    for retry in range(3):
+        start = time.perf_counter()
+        res = ollama.generate(prompt, timeout=300)
+        duration = time.perf_counter() - start
+
+        if res["success"]:
+            print(f"Risposta ricevuta in {duration:.2f}s")
+            eval_sec = res.get("eval_duration", 0) / 1e9
+            avg_tokens_sec = res.get("eval_count", 0) / eval_sec if eval_sec > 0 else 0
+            print(f"Velocità generazione: {avg_tokens_sec:.2f} tokens/s")
+            break
+
+        print(f"Tentativo {retry+1}/3 fallito: {res.get('error')}" )
+        if retry < 2:
+            time.sleep(5)
+            print("Riprovo...")
     else:
-        print(f"Errore: {res.get('error')}")
+        print("LLM non disponibile dopo 3 tentativi.")
 
 if __name__ == "__main__":
     benchmark_memory()

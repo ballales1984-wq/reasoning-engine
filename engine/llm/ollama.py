@@ -60,44 +60,69 @@ class OllamaTool:
         model: str = None,
         system: str = None,
         context: list = None,
-        timeout: int = 180,
+        timeout: int = 300,
     ) -> dict:
         """Genera una risposta usando Ollama (Auto-detect GPU/CPU)."""
+        return self.generate_with_retries(prompt, model=model, system=system, context=context, timeout=timeout, retries=3)
+
+    def generate_with_retries(
+        self,
+        prompt: str,
+        model: str = None,
+        system: str = None,
+        context: list = None,
+        timeout: int = 300,
+        retries: int = 3,
+        retry_delay: int = 5,
+    ) -> dict:
+        """Genera risposta con retry su errori temporanei."""
         model = model or self.default_model
-        try:
-            payload = {
-                "model": model,
-                "prompt": prompt,
-                "stream": False,
-                "options": {"num_gpu": 1, "num_thread": 8, "temperature": 0.3},
-            }
-            if system:
-                payload["system"] = system
-            if context:
-                payload["context"] = context
 
-            data = json.dumps(payload).encode("utf-8")
-            req = urllib.request.Request(
-                f"{self.base_url}/api/generate",
-                data=data,
-                headers={"Content-Type": "application/json"},
-            )
-            with urllib.request.urlopen(req, timeout=timeout) as response:
-                result = json.loads(response.read().decode())
+        for attempt in range(1, retries + 1):
+            try:
+                payload = {
+                    "model": model,
+                    "prompt": prompt,
+                    "stream": False,
+                    "options": {"num_gpu": 1, "num_thread": 8, "temperature": 0.3},
+                }
+                if system:
+                    payload["system"] = system
+                if context:
+                    payload["context"] = context
 
-            answer = result.get("response", "")
-            self.conversation_history.append({"role": "user", "content": prompt})
-            self.conversation_history.append({"role": "assistant", "content": answer})
+                data = json.dumps(payload).encode("utf-8")
+                req = urllib.request.Request(
+                    f"{self.base_url}/api/generate",
+                    data=data,
+                    headers={"Content-Type": "application/json"},
+                )
+                with urllib.request.urlopen(req, timeout=timeout) as response:
+                    result = json.loads(response.read().decode())
 
-            return {
-                "success": True,
-                "response": answer,
-                "model": model,
-                "eval_count": result.get("eval_count", 0),
-                "eval_duration": result.get("eval_duration", 0),
-                "context": result.get("context", []),
-            }
-        except Exception as e:
+                answer = result.get("response", "")
+                self.conversation_history.append({"role": "user", "content": prompt})
+                self.conversation_history.append({"role": "assistant", "content": answer})
+
+                return {
+                    "success": True,
+                    "response": answer,
+                    "model": model,
+                    "eval_count": result.get("eval_count", 0),
+                    "eval_duration": result.get("eval_duration", 0),
+                    "context": result.get("context", []),
+                }
+
+            except Exception as e:
+                last_error = str(e)
+                if attempt < retries:
+                    print(f"Ollama generate fallito (tentativo {attempt}/{retries}): {last_error}. Riprovo tra {retry_delay}s...")
+                    import time
+
+                    time.sleep(retry_delay)
+                    continue
+                return {"success": False, "error": last_error, "response": "Errore Ollama"}
+
             return {"success": False, "error": str(e), "response": "Errore Ollama"}
 
     def generate_embedding(self, text: str, model: str = None) -> dict:
