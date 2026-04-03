@@ -66,7 +66,7 @@ _funziona come un detective: non indovina, indaga_
 ```bash
 git clone https://github.com/ballales1984-wq/reasoning-engine.git
 cd reasoning-engine
-pip install numpy numba httpx beautifulsoup4 yfinance
+pip install -r requirements.txt
 python main.py
 ```
 
@@ -93,6 +93,16 @@ engine/
     rules.py           # Rule engine con regole matematiche
     verifier.py        # Verifica coerenza risultati
     explainer.py       # Generazione spiegazioni
+  question_based/      # Motore di ragionamento iterativo a domande
+    hypothesis_space.py    # Gestione ipotesi e probabilita
+    question_generator.py # Generazione domande utili
+    information_gain.py   # Selezione domanda migliore (entropia)
+    probability_updater.py # Aggiornamento probabilita
+    question_reasoner.py  # Ciclo completo ragionamento
+    explainer.py          # Spiegazione percorso logico
+    kg_bridge.py          # Collegamento al Knowledge Graph
+    llm_extractor.py      # Estrazione caratteristiche da LLM
+    auto_researcher.py    # Ricerca automatica con agenti
   agents/
     base.py            # Interfaccia base agenti
     manager.py         # Orchestratore multi-agent
@@ -123,6 +133,29 @@ python test_benchmark.py       # Benchmark performance
 python test_deep_reasoning.py  # Test ragionamento profondo
 python test_power_tools.py     # Test tool avanzati
 python test_browsing.py        # Test web browsing
+python test_question_reasoner.py  # Test Question-Based Reasoner
+```
+
+## Question-Based Reasoner - Esempio Rapido
+
+```python
+from engine.question_based import HypothesisSpace, QuestionReasoner
+
+hypotheses = {
+    "cane":  {"domestico": True,  "coda_lunga": False, "rosso": False},
+    "gatto": {"domestico": True,  "coda_lunga": True,  "rosso": False},
+    "volpe": {"domestico": False, "coda_lunga": True,  "rosso": True},
+}
+
+space = HypothesisSpace(hypotheses)
+reasoner = QuestionReasoner(space=space)
+
+def answer_callback(q):
+    return {"domestico": True, "coda_lunga": True}.get(q, True)
+
+result = reasoner.run(answer_callback)
+print(f"Conclusion: {result['final_hypothesis']}")  # -> gatto
+print(f"Probability: {result['final_probabilities']}")  # -> {'gatto': 1.0}
 ```
 
 ## Licenza
