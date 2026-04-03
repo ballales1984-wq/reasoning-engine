@@ -151,10 +151,11 @@ async def home():
 async def chat_api(request: Request):
     body = await request.json()
     message = body.get("message", "")
+    use_llm = bool(body.get("use_llm", True))
     if not message:
         return JSONResponse({"error": "messaggio vuoto"}, status_code=400)
 
-    result = engine.reason(message)
+    result = engine.reason(message, use_llm=use_llm)
 
     steps_data = []
     if result.steps:

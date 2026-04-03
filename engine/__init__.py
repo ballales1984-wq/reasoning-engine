@@ -199,22 +199,23 @@ class ReasoningEngine:
 
         # 2b. Fast-Path: Commenti casuali e frasi non-domanda
         casual_patterns = [
-            r"che\s+(bel|forte|veloce|bell|interessant)",
-            r"che\s+modo",
-            r"grazie",
-            r"perfetto",
-            r"ok",
-            r"va bene",
-            r"mah",
-            r"boh",
-            r"si",
-            r"no",
+            r"^grazie$",
+            r"^perfetto$",
+            r"^ok$",
+            r"^va bene$",
+            r"^mah$",
+            r"^boh$",
+            r"^si$",
+            r"^no$",
+            r"^figo$",
+            r"^wow$",
+            r"^cool$",
+            r"^nice$",
+            r"\bgrazie\b",
+            r"\bperfetto\b",
+            r"\bokk\b",
+            r"che\s+(bel|forte|veloce|bell|interessant|figo|fortun|strano)",
             r"come\s+vuoi",
-            r"okk",
-            r"figo",
-            r"wow",
-            r"cool",
-            r"nice",
         ]
         for pattern in casual_patterns:
             if re.search(pattern, normalized):
@@ -358,8 +359,25 @@ class ReasoningEngine:
         if agent_res.get("feedback"):
             final_explanation += f"\n[Critica AI: {agent_res['feedback']}]"
 
-        # 10. Fallback to LLM if agent didn't produce a useful answer
-        if agent_res.get("answer") is None and use_llm and self.llm.is_available():
+        # 10. Fallback to LLM if answer is missing OR too weak/generic
+        answer_text = (
+            str(agent_res.get("answer", "")).strip().lower()
+            if agent_res.get("answer") is not None
+            else ""
+        )
+        weak_patterns = [
+            "non ho trovato informazioni dirette",
+            "non ho abbastanza informazioni",
+            "non posso rispondere",
+            "non so",
+        ]
+        weak_answer = (
+            agent_res.get("answer") is None
+            or agent_res.get("confidence", 0.0) < 0.45
+            or any(p in answer_text for p in weak_patterns)
+        )
+
+        if weak_answer and use_llm and self.llm.is_available():
             llm_res = self.llm.fallback_solve(question)
             if llm_res.facts:
                 best = max(llm_res.facts, key=lambda f: f.confidence)
