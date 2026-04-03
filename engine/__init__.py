@@ -24,6 +24,7 @@ from .tools.finance_data import FinancialDataTool
 from .tools.data_analyzer import DataAnalysisTool
 from .tools.memory_tool import MemoryTool
 from .tools.browsing_tool import BrowsingTool
+from .tools.web import WebTool
 from .agents.manager import AgentManager
 from .llm.bridge import LLMBridge, LLMClient
 
@@ -50,6 +51,7 @@ class ReasoningEngine:
         self.data_analyzer = DataAnalysisTool(self)
         self.memory = MemoryTool(self)  # Long-term semantic memory
         self.browser = BrowsingTool(self)  # Deep web browsing
+        self.web = WebTool()  # Web search fallback
         self.agents = AgentManager(self)  # Multi-Agent Team
         self.deductive = DeductiveReasoner(self.knowledge, self.rules)
         self.inductive = InductiveReasoner(self.knowledge, self.rules)
@@ -428,6 +430,29 @@ class ReasoningEngine:
             or agent_res.get("confidence", 0.0) < 0.45
             or any(p in answer_text for p in weak_patterns)
         )
+
+        # 10a. Web fallback per domande fattuali quando il KG non basta.
+        if weak_answer:
+            web_res = self.web.search_and_summarize(question)
+            summary = str(web_res.get("summary", "") or "").strip()
+            if web_res.get("success") and summary and summary != "Nessun risultato trovato.":
+                return ReasoningResult(
+                    answer=summary,
+                    confidence=0.72,
+                    reasoning_type="web",
+                    steps=agent_steps
+                    + [
+                        ReasoningStep(
+                            type="web",
+                            description="Risposta via ricerca web (fallback)",
+                            channel="web_search",
+                            output={"sources": web_res.get("sources", []), "query": question},
+                        )
+                    ],
+                    explanation="Risposta ottenuta da ricerca web perché il Knowledge Graph non aveva dati sufficienti.",
+                    verified=False,
+                    sources=[SourceMetadata(channel="web", trust_score=0.5)],
+                )
 
         if weak_answer and use_llm and self.llm.is_available():
             llm_res = self.llm.fallback_solve(question)
