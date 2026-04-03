@@ -57,9 +57,7 @@ class ReasoningEngine:
 
         # LLM Bridge (auto-detect provider/model, supporto Groq/OpenAI)
         resolved_key = (
-            llm_api_key
-            or os.getenv("GROQ_API_KEY")
-            or os.getenv("OPENAI_API_KEY")
+            llm_api_key or os.getenv("GROQ_API_KEY") or os.getenv("OPENAI_API_KEY")
         )
         resolved_provider = LLMClient.detect_provider(
             resolved_key, explicit_provider=llm_provider
@@ -116,7 +114,9 @@ class ReasoningEngine:
         """Salva la conoscenza su disco e ritorna il path usato."""
         if name == "default" and directory is None:
             self.knowledge.save()
-            return os.path.join(os.path.dirname(__file__), "..", "data", "knowledge.json")
+            return os.path.join(
+                os.path.dirname(__file__), "..", "data", "knowledge.json"
+            )
         path = self._state_path(name, directory)
         self.knowledge.save(path)
         return path
@@ -166,14 +166,22 @@ class ReasoningEngine:
             "buongiorno",
             "buonasera",
             "buonanotte",
+            "come",
+            "stai",
+            "va",
         }
-        if (
+        # Saluti semplici o con "come stai"
+        is_greeting = (
             normalized
-            and len(greeting_tokens) <= 3
-            and greeting_tokens.issubset(greeting_words)
-        ):
+            and len(greeting_tokens) <= 4
+            and (
+                greeting_tokens.issubset(greeting_words)
+                or ("ciao" in greeting_tokens and len(greeting_tokens) <= 3)
+            )
+        )
+        if is_greeting:
             return ReasoningResult(
-                answer="Ciao! Ci sono, dimmi pure come ti posso aiutare.",
+                answer="Ciao! Ci sono, come stai?",
                 confidence=1.0,
                 reasoning_type="greeting",
                 steps=[
@@ -188,6 +196,59 @@ class ReasoningEngine:
                 explanation="Risposta rapida di saluto.",
                 verified=True,
             )
+
+        # 2b. Fast-Path: Commenti casuali e frasi non-domanda
+        casual_patterns = [
+            r"che\s+(bel|forte|veloce|bell|interessant)",
+            r"che\s+modo",
+            r"grazie",
+            r"perfetto",
+            r"ok",
+            r"va bene",
+            r"mah",
+            r"boh",
+            r"si",
+            r"no",
+            r"come\s+vuoi",
+            r"okk",
+            r"figo",
+            r"wow",
+            r"cool",
+            r"nice",
+        ]
+        for pattern in casual_patterns:
+            if re.search(pattern, normalized):
+                casual_responses = {
+                    "che bel": "Grazie! Dimmi cosa vuoi sapere.",
+                    "che veloce": "Grazie! Sono ottimizzato per rispondere velocemente.",
+                    "che forte": "Grazie! Puoi chiedermi quello che vuoi.",
+                    "grazie": "Prego! Sono qui per aiutarti.",
+                    "perfetto": "Perfetto! Cosa vuoi fare?",
+                    "ok": "Ok! Dimmi pure.",
+                    "va bene": "Va bene! Chiedimi quello che vuoi.",
+                    "si": "Ottimo! Cosa vuoi sapere?",
+                    "no": "Ok, come preferisci. Chiedimi pure.",
+                    "figo": "Grazie! Vuoi provare qualcosa di specifico?",
+                    "wow": "Grazie! Sono qui per aiutarti.",
+                }
+                for key, resp in casual_responses.items():
+                    if key in normalized:
+                        return ReasoningResult(
+                            answer=resp,
+                            confidence=1.0,
+                            reasoning_type="casual",
+                            steps=[
+                                ReasoningStep(
+                                    type="casual",
+                                    description="Gestione frase casuale",
+                                    input=question,
+                                    output="risposta_casuale",
+                                    channel="system",
+                                )
+                            ],
+                            explanation="Risposta a commento casuale.",
+                            verified=True,
+                        )
 
         # 3. Fast-Path: Richiesta capacità/identità (generale, non frase-per-frase)
         if self._is_capability_question(question, normalized, parsed):
@@ -316,7 +377,9 @@ class ReasoningEngine:
                     ],
                     explanation=f"Ottenuto tramite LLM Bridge (Canale: {self.llm.llm.provider})",
                     llm_used=True,
-                    sources=[SourceMetadata(channel=self.llm.llm.provider, trust_score=0.4)],
+                    sources=[
+                        SourceMetadata(channel=self.llm.llm.provider, trust_score=0.4)
+                    ],
                 )
 
         if agent_res.get("answer") is None:
