@@ -10,7 +10,7 @@
           "22/7 (approssimazione)"
         ],
         "category": "math/constants",
-        "last_updated": 1775073892.3936203,
+        "last_updated": 1775239408.4573128,
         "trust_score": 1.0
       }
     },
@@ -30,7 +30,7 @@
           "13"
         ],
         "category": "math/numbers",
-        "last_updated": 1775073892.3936265,
+        "last_updated": 1775239408.4573271,
         "trust_score": 1.0
       }
     },
@@ -47,7 +47,7 @@
           "1/3 = 0.333..."
         ],
         "category": "math/fractions",
-        "last_updated": 1775073892.39363,
+        "last_updated": 1775239408.4573328,
         "trust_score": 1.0
       }
     },
@@ -64,7 +64,7 @@
           "100% = tutto"
         ],
         "category": "math/percentages",
-        "last_updated": 1775073892.3936348,
+        "last_updated": 1775239408.4573376,
         "trust_score": 1.0
       }
     },
@@ -81,7 +81,7 @@
           "10² = 100"
         ],
         "category": "math/powers",
-        "last_updated": 1775073892.393639,
+        "last_updated": 1775239408.4573429,
         "trust_score": 1.0
       }
     },
@@ -98,7 +98,7 @@
           "√16 = 4"
         ],
         "category": "math/roots",
-        "last_updated": 1775073892.3936439,
+        "last_updated": 1775239408.4573462,
         "trust_score": 1.0
       }
     },
@@ -115,7 +115,7 @@
           "5! = 120"
         ],
         "category": "math/factorial",
-        "last_updated": 1775073892.3936472,
+        "last_updated": 1775239408.4573488,
         "trust_score": 1.0
       }
     },
@@ -131,7 +131,7 @@
           "2x = 10 → x = 5"
         ],
         "category": "math/equations",
-        "last_updated": 1775073892.3936503,
+        "last_updated": 1775239408.4573526,
         "trust_score": 1.0
       }
     },
@@ -144,7 +144,7 @@
         "description": "Sono ReasoningEngine v2.0, un AI che ragiona come un umano. Combino NLP, ragionamento deduttivo/induttivo/analogico, matematica avanzata, ricerca web e esecuzione codice.",
         "examples": [],
         "category": "system",
-        "last_updated": 1775073892.3973603,
+        "last_updated": 1775239408.463102,
         "trust_score": 1.0
       }
     },
@@ -393,7 +393,7 @@
           "Esempio A"
         ],
         "category": "general",
-        "last_updated": 1775070494.3118196,
+        "last_updated": 1775239408.46327,
         "trust_score": 0.3
       },
       "official_source": {
@@ -402,7 +402,7 @@
           "Esempio B"
         ],
         "category": "general",
-        "last_updated": 1775070494.3139868,
+        "last_updated": 1775239408.4807758,
         "trust_score": 0.9
       }
     },
@@ -418,7 +418,7 @@
           "Trend: crescente"
         ],
         "category": "data/stats",
-        "last_updated": 1775070508.856153,
+        "last_updated": 1775239434.1695004,
         "trust_score": 0.9
       }
     },
@@ -462,7 +462,7 @@
           "esempio2"
         ],
         "category": "general",
-        "last_updated": 1775073892.2307088,
+        "last_updated": 1775239361.3393297,
         "trust_score": 1.0
       }
     },
