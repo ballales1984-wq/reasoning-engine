@@ -7,28 +7,25 @@ class ProbabilityUpdater:
     def __init__(self, smoothing: float = 0.01):
         self.smoothing = smoothing
 
-    def _extract_feature_from_question(self, question: str) -> Tuple[str, bool]:
+    def _extract_feature_from_question(self, question: str) -> Tuple[str, Any]:
         """Estrae la feature e il valore atteso dalla domanda."""
         question_lower = question.lower()
 
         # Mappatura domande -> (feature, expected_value)
         mappings = [
-            (("domestico", "domestico"), True),
-            (("coda lunga", "coda_lunga"), True),
-            (("colore rosso", "colore"), "rosso"),
-            (("rosso", "rosso"), True),
-            (("primario", "primario"), True),
-            (("caldo", "caldo"), True),
-            (("team", "team"), True),
-            (("palla", "palla"), True),
+            ("domestico", "domestico"),
+            ("coda lunga", "coda_lunga"),
+            ("colore rosso", "colore"),
+            ("rosso", "rosso"),
+            ("primario", "primario"),
+            ("caldo", "caldo"),
+            ("team", "team"),
+            ("palla", "palla"),
         ]
 
-        for keywords, feature in mappings:
-            for kw in keywords:
-                if kw in question_lower:
-                    if isinstance(feature, tuple):
-                        return feature[0], feature[1]
-                    return feature, True
+        for pattern, feature in mappings:
+            if pattern in question_lower:
+                return feature, True
 
         return "unknown", True
 

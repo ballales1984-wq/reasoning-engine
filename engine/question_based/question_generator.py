@@ -7,33 +7,34 @@ class QuestionGenerator:
         self.domain = domain
         self.question_templates: Dict[str, List[str]] = {
             "animals": [
-                "Il suo pelo è {color}?",
-                "È un animale domestico?",
-                "Pes più di 10kg?",
+                "E' un animale domestico?",
+                "Ha la coda lunga?",
+                "E' di colore rosso?",
+                "Pes piu di 10kg?",
                 "Vive in acqua?",
-                "È un predatore?",
+                "E' un predatore?",
                 "Ha le ali?",
-                "È notturno?",
+                "E' notturno?",
                 "Vive in gruppo?",
             ],
             "colors": [
-                "È un colore primario?",
-                "È un colore caldo?",
-                "È più chiaro del blu?",
+                "E' un colore primario?",
+                "E' un colore caldo?",
+                "E' piu chiaro del blu?",
                 "Contiene rosso?",
-                "È un colore metallico?",
+                "E' un colore metallico?",
             ],
             "sports": [
                 "Si gioca in team?",
                 "Si pratica all'aperto?",
                 "usa una palla?",
-                "È uno sport Olimpico?",
+                "E' uno sport Olimpico?",
                 "richiede contatto fisico?",
             ],
             "general": [
                 "Hai pensato a {feature}?",
-                "La risposta ha la proprietà {property}?",
-                "È classificabile come {category}?",
+                "La risposta ha la proprieta {property}?",
+                "E' classificabile come {category}?",
             ],
         }
 
@@ -48,7 +49,7 @@ class QuestionGenerator:
             return random.choice(templates).format(
                 feature=feature, property=feature, category=feature
             )
-        return f"La risposta ha la proprietà {feature}?"
+        return f"La risposta ha la proprieta {feature}?"
 
     def extract_features_from_llm(self, llm_response: str) -> List[str]:
         features = []
