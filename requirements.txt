@@ -1,0 +1,7 @@
+numpy
+numba
+httpx
+beautifulsoup4
+yfinance
+fastapi
+uvicorn
