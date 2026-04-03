@@ -3,3 +3,8 @@ __pycache__/
 dist/
 build/
 *.spec
+*.log
+app_live.out.log
+app_live.err.log
+app_run.out.log
+app_run.err.log

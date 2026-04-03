@@ -1,5 +1,6 @@
 import re
 import os
+import html as html_lib
 from .core.types import (
     Entity,
     ParsedQuery,
@@ -434,7 +435,7 @@ class ReasoningEngine:
         # 10a. Web fallback per domande fattuali quando il KG non basta.
         if weak_answer:
             web_res = self.web.search_and_summarize(question)
-            summary = str(web_res.get("summary", "") or "").strip()
+            summary = self._clean_web_summary(str(web_res.get("summary", "") or ""))
             if web_res.get("success") and summary and summary != "Nessun risultato trovato.":
                 return ReasoningResult(
                     answer=summary,
@@ -571,3 +572,13 @@ class ReasoningEngine:
             "rules": self.rules.list_all(),
             "conversation_turns": len(self.conversation_history),
         }
+
+    def _clean_web_summary(self, text: str) -> str:
+        """Pulisce snippet web (entity HTML, tag residui, spazi)."""
+        if not text:
+            return ""
+        cleaned = html_lib.unescape(text)
+        cleaned = re.sub(r"<[^>]+>", " ", cleaned)
+        cleaned = re.sub(r"\s+", " ", cleaned).strip()
+        # Mantieni risposta breve e leggibile in chat.
+        return cleaned[:600]

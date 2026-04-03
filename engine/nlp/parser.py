@@ -900,31 +900,32 @@ def _infer_operation(text: str, intent: str, operators: list, numbers: list) -> 
     if "=" in text and re.search(r"[a-z]", text_lower):
         return "equation"
 
-    # Operazioni base
-    if intent == "calculate":
-        if "addition" in operators or "più" in text_lower or "somma" in text_lower:
+    # Operazioni base - funziona per qualsiasi intent (non solo "calculate")
+    if operators:
+        if (
+            "addition" in operators
+            or "più" in text_lower
+            or "piu" in text_lower
+            or "somma" in text_lower
+        ):
             return "addition"
         if "subtraction" in operators or "meno" in text_lower:
             return "subtraction"
-        if (
-            "multiplication" in operators
-            or "per" in text_lower
-            and "volte" in text_lower
-        ):
+        if "multiplication" in operators or ("per" in text_lower and len(numbers) >= 2):
             return "multiplication"
         if "division" in operators or "diviso" in text_lower:
             return "division"
 
-        # Se ha numeri e un operatore simbolico
-        if len(numbers) >= 2:
-            if "+" in text:
-                return "addition"
-            if "-" in text and not text.strip().startswith("-"):
-                return "subtraction"
-            if "×" in text or "*" in text:
-                return "multiplication"
-            if "÷" in text or "/" in text:
-                return "division"
+    # Se ha numeri e un operatore simbolico (funziona anche senza intent "calculate")
+    if len(numbers) >= 2:
+        if "+" in text:
+            return "addition"
+        if "-" in text and not text.strip().startswith("-"):
+            return "subtraction"
+        if "×" in text or "*" in text:
+            return "multiplication"
+        if "÷" in text or "/" in text:
+            return "division"
 
     if intent == "define":
         return "lookup"
