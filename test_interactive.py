@@ -123,7 +123,7 @@ def run_test():
 
     print("=" * 60)
 
-    return result.get("result", {}).get("name") == "Gatto"
+    return result.get("result").name == "Gatto" if result.get("result") else False
 
 
 if __name__ == "__main__":
