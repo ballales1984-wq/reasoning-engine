@@ -66,10 +66,13 @@ class AnalystAgent(BaseAgent):
                 if web_content:
                     text_chunks.append(web_content)
             elif item["source"] == "web_search":
-                # Estrai risultati dalla ricerca web
-                for result in item["content"].get("results", []):
-                    if result.get("content"):
-                        text_chunks.append(result["content"][:500])
+                # Usa risultati web solo se non hai dati dal KG o memoria
+                if not text_chunks:
+                    # Estrai risultati dalla ricerca web - prendi SOLO il primo
+                    results = item["content"].get("results", [])
+                    if results and results[0].get("content"):
+                        # Prendi solo il primo risultato
+                        text_chunks.append(results[0]["content"][:300])
 
         all_text = " ".join(text_chunks).strip()
 

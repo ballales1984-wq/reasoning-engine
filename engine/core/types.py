@@ -89,6 +89,19 @@ class Analogy:
     structural_similarity: float = 0.0
     explanation: str = ""
 
+    # Legacy compatibility aliases expected by old tests/scripts.
+    @property
+    def source_concept(self):
+        return self.source
+
+    @property
+    def target_concept(self):
+        return self.target
+
+    @property
+    def similarity_score(self):
+        return self.structural_similarity
+
 @dataclass
 class AnalogyResult:
     """Risultato di una ricerca di analogie."""
@@ -120,3 +133,10 @@ class ReasoningResult:
     rules_used: List[str] = field(default_factory=list)
     llm_used: bool = False
     sources: List[SourceMetadata] = field(default_factory=list)
+
+    # Legacy dict-like compatibility for old scripts/tests.
+    def get(self, key: str, default=None):
+        return getattr(self, key, default)
+
+    def __getitem__(self, key: str):
+        return getattr(self, key)

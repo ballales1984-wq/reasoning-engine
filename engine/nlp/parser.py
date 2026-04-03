@@ -367,12 +367,15 @@ INTENT_PATTERNS = {
     ],
     "define": [
         r"cosa [èe]",
-        r"cos['']è",
+        r"cos['’]?[eè]",
+        r"cos\s+[eè]",
         r"definisci",
-        r"che cos['']è",
+        r"che cos['’]?[eè]",
+        r"che cos\s+[eè]",
         r"che cosa [èe]",
         r"spiegami",
-        r"dimmi cos['']è",
+        r"dimmi cos['’]?[eè]",
+        r"dimmi cos\s+[eè]",
         r"significato di",
         # English
         r"what is",

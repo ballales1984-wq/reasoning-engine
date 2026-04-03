@@ -60,7 +60,7 @@ class ResearcherAgent(BaseAgent):
                     )
                 )
 
-        # 4. Fallback: Ricerca web se nessun risultato trovato
+        # 4. Fallback: Ricerca web SOLO se nessun risultato trovato (KG, memoria, browsing)
         if not results:
             web_res = self.web_tool.search(query, max_results=3)
             if web_res.get("results"):

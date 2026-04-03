@@ -10,7 +10,7 @@
           "22/7 (approssimazione)"
         ],
         "category": "math/constants",
-        "last_updated": 1775239408.4573128,
+        "last_updated": 1775256451.4686148,
         "trust_score": 1.0
       }
     },
@@ -30,7 +30,7 @@
           "13"
         ],
         "category": "math/numbers",
-        "last_updated": 1775239408.4573271,
+        "last_updated": 1775256451.4686303,
         "trust_score": 1.0
       }
     },
@@ -47,7 +47,7 @@
           "1/3 = 0.333..."
         ],
         "category": "math/fractions",
-        "last_updated": 1775239408.4573328,
+        "last_updated": 1775256451.4686384,
         "trust_score": 1.0
       }
     },
@@ -64,7 +64,7 @@
           "100% = tutto"
         ],
         "category": "math/percentages",
-        "last_updated": 1775239408.4573376,
+        "last_updated": 1775256451.4686441,
         "trust_score": 1.0
       }
     },
@@ -81,7 +81,7 @@
           "10² = 100"
         ],
         "category": "math/powers",
-        "last_updated": 1775239408.4573429,
+        "last_updated": 1775256451.4686491,
         "trust_score": 1.0
       }
     },
@@ -98,7 +98,7 @@
           "√16 = 4"
         ],
         "category": "math/roots",
-        "last_updated": 1775239408.4573462,
+        "last_updated": 1775256451.468654,
         "trust_score": 1.0
       }
     },
@@ -115,7 +115,7 @@
           "5! = 120"
         ],
         "category": "math/factorial",
-        "last_updated": 1775239408.4573488,
+        "last_updated": 1775256451.4686582,
         "trust_score": 1.0
       }
     },
@@ -131,7 +131,7 @@
           "2x = 10 → x = 5"
         ],
         "category": "math/equations",
-        "last_updated": 1775239408.4573526,
+        "last_updated": 1775256451.4686637,
         "trust_score": 1.0
       }
     },
@@ -144,7 +144,7 @@
         "description": "Sono ReasoningEngine v2.0, un AI che ragiona come un umano. Combino NLP, ragionamento deduttivo/induttivo/analogico, matematica avanzata, ricerca web e esecuzione codice.",
         "examples": [],
         "category": "system",
-        "last_updated": 1775239408.463102,
+        "last_updated": 1775256451.4719942,
         "trust_score": 1.0
       }
     },
@@ -185,7 +185,7 @@
           "1000€ al 5% per 2 anni = 100€ di interesse"
         ],
         "category": "finance/interest",
-        "last_updated": 1775069269.1605508,
+        "last_updated": 1775256451.4721766,
         "trust_score": 1.0
       }
     },
@@ -200,7 +200,7 @@
           "1000€ al 5% per 2 anni = 102.5€ (non 100€)"
         ],
         "category": "finance/interest",
-        "last_updated": 1775069269.1605592,
+        "last_updated": 1775256451.4721851,
         "trust_score": 1.0
       }
     },
@@ -215,7 +215,7 @@
           "Investi 1000€, guadagni 1200€ → ROI = 20%"
         ],
         "category": "finance/metrics",
-        "last_updated": 1775069269.1605637,
+        "last_updated": 1775256451.4721904,
         "trust_score": 1.0
       }
     },
@@ -230,7 +230,7 @@
           "Non mettere tutte le uova nello stesso paniere"
         ],
         "category": "finance/strategy",
-        "last_updated": 1775069269.1605673,
+        "last_updated": 1775256451.4721947,
         "trust_score": 1.0
       }
     },
@@ -245,7 +245,7 @@
           "Se l'inflazione è 3%, 100€ oggi valgono 97€ tra un anno"
         ],
         "category": "finance/concepts",
-        "last_updated": 1775069269.1605856,
+        "last_updated": 1775256451.472199,
         "trust_score": 1.0
       }
     },
@@ -260,7 +260,7 @@
           "Contanti = alta liquidità, immobili = bassa liquidità"
         ],
         "category": "finance/concepts",
-        "last_updated": 1775069269.1605906,
+        "last_updated": 1775256451.4723654,
         "trust_score": 1.0
       }
     },
@@ -275,7 +275,7 @@
           "Se investi in azioni, il costo opportunità è il rendimento obbligazionario perso"
         ],
         "category": "finance/concepts",
-        "last_updated": 1775069269.1605937,
+        "last_updated": 1775256451.4723737,
         "trust_score": 1.0
       }
     },
@@ -290,7 +290,7 @@
           "Investi 1000€, valgono 1100€ → rendimento 10%"
         ],
         "category": "finance/metrics",
-        "last_updated": 1775069269.160597,
+        "last_updated": 1775256451.4723783,
         "trust_score": 1.0
       }
     },
@@ -305,7 +305,7 @@
           "Azioni = alto rischio, obbligazioni statali = basso rischio"
         ],
         "category": "finance/concepts",
-        "last_updated": 1775069269.1605997,
+        "last_updated": 1775256451.4723825,
         "trust_score": 1.0
       }
     },
@@ -320,7 +320,7 @@
           "BOT, BTP, corporate bond"
         ],
         "category": "finance/instruments",
-        "last_updated": 1775069269.1606028,
+        "last_updated": 1775256451.4723864,
         "trust_score": 1.0
       }
     },
@@ -335,7 +335,7 @@
           "Azione Apple, azione Enel"
         ],
         "category": "finance/instruments",
-        "last_updated": 1775069269.1606057,
+        "last_updated": 1775256451.4724176,
         "trust_score": 1.0
       }
     },
@@ -350,7 +350,7 @@
           "Fondo azionario, fondo bilanciato, ETF"
         ],
         "category": "finance/instruments",
-        "last_updated": 1775069269.1606092,
+        "last_updated": 1775256451.472422,
         "trust_score": 1.0
       }
     },
@@ -365,7 +365,7 @@
           "ETF S&P500, ETF MSCI World"
         ],
         "category": "finance/instruments",
-        "last_updated": 1775069269.1606147,
+        "last_updated": 1775256451.472426,
         "trust_score": 1.0
       }
     },
@@ -463,6 +463,191 @@
         ],
         "category": "general",
         "last_updated": 1775239361.3393297,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "Francia": {
+    "name": "Francia",
+    "channels": {
+      "system": {
+        "description": "Francia è uno Stato europeo.",
+        "examples": [],
+        "category": "geografia",
+        "last_updated": 1775256451.472012,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {
+      "capitale": [
+        [
+          "Parigi",
+          "system"
+        ]
+      ]
+    }
+  },
+  "Italia": {
+    "name": "Italia",
+    "channels": {
+      "system": {
+        "description": "Italia è uno Stato europeo.",
+        "examples": [],
+        "category": "geografia",
+        "last_updated": 1775256451.4720404,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {
+      "capitale": [
+        [
+          "Roma",
+          "system"
+        ]
+      ]
+    }
+  },
+  "Germania": {
+    "name": "Germania",
+    "channels": {
+      "system": {
+        "description": "Germania è uno Stato europeo.",
+        "examples": [],
+        "category": "geografia",
+        "last_updated": 1775256451.472053,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {
+      "capitale": [
+        [
+          "Berlino",
+          "system"
+        ]
+      ]
+    }
+  },
+  "Spagna": {
+    "name": "Spagna",
+    "channels": {
+      "system": {
+        "description": "Spagna è uno Stato europeo.",
+        "examples": [],
+        "category": "geografia",
+        "last_updated": 1775256451.4720607,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {
+      "capitale": [
+        [
+          "Madrid",
+          "system"
+        ]
+      ]
+    }
+  },
+  "mammifero": {
+    "name": "mammifero",
+    "channels": {
+      "user": {
+        "description": "animale",
+        "examples": [],
+        "category": "biologia",
+        "last_updated": 1775256451.6502385,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {
+      "è_un_tipo_di": [
+        [
+          "animale",
+          "local"
+        ]
+      ]
+    }
+  },
+  "animale": {
+    "name": "animale",
+    "channels": {
+      "user": {
+        "description": "essere vivente",
+        "examples": [],
+        "category": "biologia",
+        "last_updated": 1775256451.6733854,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "gatto": {
+    "name": "gatto",
+    "channels": {
+      "user": {
+        "description": "mammifero",
+        "examples": [],
+        "category": "biologia",
+        "last_updated": 1775256451.9360428,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {
+      "è_un_tipo_di": [
+        [
+          "mammifero",
+          "local"
+        ]
+      ]
+    }
+  },
+  "sole": {
+    "name": "sole",
+    "channels": {
+      "user": {
+        "description": "stella",
+        "examples": [],
+        "category": "astronomia",
+        "last_updated": 1775256452.0806298,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "nucleo": {
+    "name": "nucleo",
+    "channels": {
+      "user": {
+        "description": "centro atomo",
+        "examples": [],
+        "category": "fisica",
+        "last_updated": 1775256452.283227,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "sistema_solare": {
+    "name": "sistema_solare",
+    "channels": {
+      "user": {
+        "description": "sole con pianeti",
+        "examples": [],
+        "category": "astronomia",
+        "last_updated": 1775256452.6174314,
+        "trust_score": 1.0
+      }
+    },
+    "relations": {}
+  },
+  "atomo": {
+    "name": "atomo",
+    "channels": {
+      "user": {
+        "description": "nucleo con elettroni",
+        "examples": [],
+        "category": "fisica",
+        "last_updated": 1775256452.694909,
         "trust_score": 1.0
       }
     },

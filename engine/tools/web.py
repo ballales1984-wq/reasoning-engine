@@ -181,19 +181,13 @@ class WebTool:
                 "sources": [],
             }
 
-        # Combina i contenuti
-        parts = []
-        sources = []
-        for r in result["results"]:
-            content = r.get("content", "")
-            if content:
-                parts.append(content)
-            if r.get("url"):
-                sources.append(r["url"])
+        # Usa SOLO il primo risultato per evitare risposte confuse
+        first_result = result["results"][0]
+        summary = first_result.get("content", "")[:400]
 
-        summary = " | ".join(parts[:3])
-        if len(summary) > 500:
-            summary = summary[:500] + "..."
+        sources = []
+        if first_result.get("url"):
+            sources.append(first_result["url"])
 
         return {
             "success": True,
