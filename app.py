@@ -16,7 +16,7 @@ sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding="utf-8", errors="repla
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 
@@ -24,6 +24,12 @@ from engine import ReasoningEngine
 
 app = FastAPI(title="ReasoningEngine v2.0", version="2.0.0")
 engine = ReasoningEngine()
+
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    # Evita 404 nel browser quando richiede l'icona tab.
+    return Response(status_code=204)
 
 
 HTML_PAGE = """<!DOCTYPE html>
