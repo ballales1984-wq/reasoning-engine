@@ -61,9 +61,21 @@ class LLMClient:
         urls = {
             "openai": "https://api.openai.com/v1",
             "anthropic": "https://api.anthropic.com/v1",
+            "groq": "https://api.groq.com/openai/v1",
             "ollama": "http://localhost:11434/v1",
         }
         return urls.get(self.provider, "https://api.openai.com/v1")
+
+    @staticmethod
+    def detect_provider(api_key: str | None, explicit_provider: str | None = None) -> str:
+        """Rileva automaticamente il provider in base alla chiave."""
+        if explicit_provider:
+            return explicit_provider
+        if not api_key:
+            return "openai"
+        if str(api_key).startswith("gsk_"):
+            return "groq"
+        return "openai"
 
     def _get_client(self):
         """Lazy init del client HTTP."""

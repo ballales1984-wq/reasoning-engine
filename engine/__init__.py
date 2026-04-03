@@ -33,7 +33,12 @@ class ReasoningEngine:
     Il cervello principale. Coordina tutti i componenti e il team di agenti Multi-Agent.
     """
 
-    def __init__(self, llm_api_key: str = None, llm_model: str = "gpt-4o-mini"):
+    def __init__(
+        self,
+        llm_api_key: str = None,
+        llm_model: str = "gpt-4o-mini",
+        llm_provider: str = None,
+    ):
         self.knowledge = KnowledgeGraph()
         self.knowledge.load()  # Carica conoscenze salvate
         self.rules = RuleEngine()
@@ -50,8 +55,25 @@ class ReasoningEngine:
         self.inductive = InductiveReasoner(self.knowledge, self.rules)
         self.analogical = AnalogicalReasoner(self.knowledge)
 
-        # LLM Bridge
-        llm_client = LLMClient(model=llm_model, api_key=llm_api_key)
+        # LLM Bridge (auto-detect provider/model, supporto Groq/OpenAI)
+        resolved_key = (
+            llm_api_key
+            or os.getenv("GROQ_API_KEY")
+            or os.getenv("OPENAI_API_KEY")
+        )
+        resolved_provider = LLMClient.detect_provider(
+            resolved_key, explicit_provider=llm_provider
+        )
+        resolved_model = llm_model
+        if llm_model == "gpt-4o-mini" and resolved_provider == "groq":
+            # Modello Groq veloce e stabile come default.
+            resolved_model = "llama-3.1-8b-instant"
+
+        llm_client = LLMClient(
+            provider=resolved_provider,
+            model=resolved_model,
+            api_key=resolved_key,
+        )
         self.llm = LLMBridge(llm_client, self.knowledge, self.verifier)
 
         # Contesto conversazione
@@ -289,12 +311,12 @@ class ReasoningEngine:
                         ReasoningStep(
                             type="llm",
                             description="Risposta via Canale LLM Bridge",
-                            channel="ollama",
+                            channel=self.llm.llm.provider,
                         )
                     ],
-                    explanation="Ottenuto tramite LLM Bridge (Canale: ollama)",
+                    explanation=f"Ottenuto tramite LLM Bridge (Canale: {self.llm.llm.provider})",
                     llm_used=True,
-                    sources=[SourceMetadata(channel="ollama", trust_score=0.4)],
+                    sources=[SourceMetadata(channel=self.llm.llm.provider, trust_score=0.4)],
                 )
 
         if agent_res.get("answer") is None:

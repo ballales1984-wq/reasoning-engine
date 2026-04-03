@@ -15,7 +15,9 @@ Endpoints:
 Avvio:
   python3 api.py                    # porta 8080
   python3 api.py --port 3000        # porta custom
-  python3 api.py --llm-key sk-xxx   # con LLM
+  python3 api.py --llm-key sk-xxx           # OpenAI
+  python3 api.py --llm-key gsk-xxx          # Groq
+  python3 api.py --llm-provider groq --llm-model llama-3.1-8b-instant
 """
 
 import json
@@ -48,10 +50,14 @@ def _to_jsonable(value):
         return [_to_jsonable(v) for v in value]
     return value
 
-def get_engine(llm_key=None):
+def get_engine(llm_key=None, llm_provider=None, llm_model="gpt-4o-mini"):
     global _engine
     if _engine is None:
-        _engine = ReasoningEngine(llm_api_key=llm_key)
+        _engine = ReasoningEngine(
+            llm_api_key=llm_key,
+            llm_provider=llm_provider,
+            llm_model=llm_model,
+        )
         # Auto-load saved state
         try:
             _engine.load("api_state")
@@ -260,11 +266,22 @@ def main():
     parser = argparse.ArgumentParser(description="ReasoningEngine API")
     parser.add_argument("--port", type=int, default=8080, help="Porta (default: 8080)")
     parser.add_argument("--host", default="0.0.0.0", help="Host (default: 0.0.0.0)")
-    parser.add_argument("--llm-key", default=None, help="OpenAI API key (opzionale)")
+    parser.add_argument("--llm-key", default=None, help="LLM API key (OpenAI/Groq)")
+    parser.add_argument(
+        "--llm-provider",
+        default=None,
+        choices=["openai", "groq", "anthropic", "ollama"],
+        help="Provider LLM (opzionale, auto-detect da API key se omesso)",
+    )
+    parser.add_argument(
+        "--llm-model",
+        default="gpt-4o-mini",
+        help="Modello LLM (default: gpt-4o-mini; con Groq viene auto-mappato se lasci default)",
+    )
     args = parser.parse_args()
 
     # Inizializza engine
-    engine = get_engine(args.llm_key)
+    engine = get_engine(args.llm_key, args.llm_provider, args.llm_model)
 
     # Avvia server
     server = HTTPServer((args.host, args.port), APIHandler)
@@ -276,7 +293,10 @@ def main():
     print(f"  Host: {args.host}:{args.port}")
     print(f"  Concetti: {len(info.get('concepts', []))}")
     print(f"  Regole: {len(info.get('rules', []))}")
-    print(f"  LLM: {'✅ configurato' if args.llm_key else '❌ non configurato'}")
+    provider = engine.llm.llm.provider if hasattr(engine, "llm") else "-"
+    model = engine.llm.llm.model if hasattr(engine, "llm") else "-"
+    configured = "✅ configurato" if engine.llm.is_available() else "❌ non configurato"
+    print(f"  LLM: {configured} (provider={provider}, model={model})")
     print(f"\n  Endpoints:")
     print(f"    POST /reason       — Ragiona su una domanda")
     print(f"    POST /learn        — Insegna un concetto")
