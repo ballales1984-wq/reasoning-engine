@@ -11,6 +11,8 @@ class AutoResearcher:
                 features = self.llm.extract_features(concept, others)
             except Exception:
                 features = {}
+        if not features:
+            return {"error": "no_features_found", "concept": concept}
         return features
 
     def update_knowledge_graph(self, kg, concept, desc="", features=None, relations=None):
@@ -28,3 +30,11 @@ class AutoResearcher:
                 obj.add_relation(r, str(t))
 
         return kg
+
+    # High-level helper used by demos/docs.
+    def full_research_cycle(self, kg, new_concept, existing_hypotheses=None, description=""):
+        features = self.research(new_concept, existing_hypotheses or [])
+        if isinstance(features, dict) and "error" in features:
+            features = {}
+        updated = self.update_knowledge_graph(kg, new_concept, description, features=features)
+        return {"features": features, "knowledge_graph": updated}

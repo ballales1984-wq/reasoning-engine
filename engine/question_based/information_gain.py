@@ -39,3 +39,31 @@ class InformationGain:
             return None
         base = self.entropy(self.space.active)
         return max(questions, key=lambda q: base - self._expected_entropy(q))
+
+
+class InformationGainSelector:
+    # Legacy adapter expected by older tests.
+    def calculate_entropy(self, probabilities):
+        total = sum(probabilities)
+        if total <= 0:
+            return 0.0
+        e = 0.0
+        for p in probabilities:
+            if p > 0:
+                ratio = p / total
+                e -= ratio * math.log2(ratio)
+        return e
+
+    def calculate_information_gain(self, hypothesis_space, question, yes_map, no_map):
+        priors = [hypothesis_space.priors.get(h, 0.0) for h in hypothesis_space.remaining()]
+        base = self.calculate_entropy(priors)
+        yes_probs = [hypothesis_space.priors.get(h, 0.0) * float(yes_map.get(h, 0.0)) for h in hypothesis_space.remaining()]
+        no_probs = [hypothesis_space.priors.get(h, 0.0) * float(no_map.get(h, 0.0)) for h in hypothesis_space.remaining()]
+        py = sum(yes_probs)
+        pn = sum(no_probs)
+        total = py + pn
+        if total <= 0:
+            return 0.0
+        expected = (py / total) * self.calculate_entropy(yes_probs) + (pn / total) * self.calculate_entropy(no_probs)
+        gain = base - expected
+        return max(0.0, gain)

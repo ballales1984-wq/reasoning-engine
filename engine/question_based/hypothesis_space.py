@@ -14,6 +14,7 @@ class HypothesisSpace:
     def __init__(self, hypotheses: dict | str | None = None, priors: dict | None = None):
         self.domain = hypotheses if isinstance(hypotheses, str) else "default"
         self.hypotheses = hypotheses if isinstance(hypotheses, dict) else {}
+        self.names = {h: h for h in self.hypotheses}
         self.active = set(self.hypotheses.keys())
         self.priors = {}
 
@@ -30,16 +31,16 @@ class HypothesisSpace:
 
     def add_hypothesis(self, hypothesis: Hypothesis):
         self.hypotheses[hypothesis.id] = dict(hypothesis.features or {})
+        self.names[hypothesis.id] = hypothesis.name or hypothesis.id
         self.priors[hypothesis.id] = float(hypothesis.probability)
         self.active.add(hypothesis.id)
-        self.renormalize()
 
     def get_hypothesis(self, hypothesis_id: str):
         if hypothesis_id not in self.hypotheses:
             return None
         return Hypothesis(
             id=hypothesis_id,
-            name=hypothesis_id,
+            name=self.names.get(hypothesis_id, hypothesis_id),
             probability=float(self.priors.get(hypothesis_id, 0.0)),
             features=dict(self.hypotheses.get(hypothesis_id, {})),
         )
