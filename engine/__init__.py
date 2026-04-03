@@ -199,6 +199,9 @@ class ReasoningEngine:
 
         # 2b. Fast-Path: Commenti casuali e frasi non-domanda
         casual_patterns = [
+            r"^(io\s+)?(sto\s+)?bene$",
+            r"^tutto\s+bene$",
+            r"^sto\s+bene$",
             r"^grazie$",
             r"^perfetto$",
             r"^ok$",
@@ -223,6 +226,10 @@ class ReasoningEngine:
                     "che bel": "Grazie! Dimmi cosa vuoi sapere.",
                     "che veloce": "Grazie! Sono ottimizzato per rispondere velocemente.",
                     "che forte": "Grazie! Puoi chiedermi quello che vuoi.",
+                    "io bene": "Ottimo, felice di sentirlo! Dimmi pure su cosa vuoi lavorare.",
+                    "sto bene": "Ottimo, felice di sentirlo! Dimmi pure su cosa vuoi lavorare.",
+                    "tutto bene": "Grande! Se vuoi possiamo continuare con i test o migliorare l'app.",
+                    "bene": "Ottimo! Dimmi pure come vuoi procedere.",
                     "grazie": "Prego! Sono qui per aiutarti.",
                     "perfetto": "Perfetto! Cosa vuoi fare?",
                     "ok": "Ok! Dimmi pure.",
@@ -381,8 +388,21 @@ class ReasoningEngine:
             llm_res = self.llm.fallback_solve(question)
             if llm_res.facts:
                 best = max(llm_res.facts, key=lambda f: f.confidence)
+                llm_answer = str(getattr(best, "value", "") or "").strip()
+
+                # Evita risposte vuote dal fallback LLM (caso JSON senza campo "risposta").
+                if not llm_answer:
+                    raw = str(getattr(llm_res, "raw", "") or "").strip()
+                    if raw and not raw.lower().startswith("errore llm"):
+                        llm_answer = raw
+
+                if not llm_answer:
+                    llm_answer = (
+                        "Capito. Dimmi pure cosa vuoi fare e ti aiuto passo passo."
+                    )
+
                 return ReasoningResult(
-                    answer=best.value,
+                    answer=llm_answer,
                     confidence=best.confidence,
                     reasoning_type="llm",
                     steps=agent_steps
