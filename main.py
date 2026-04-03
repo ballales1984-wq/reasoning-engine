@@ -11,16 +11,10 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from engine import ReasoningEngine
-<<<<<<< HEAD
 from engine.llm.ollama import OllamaTool
 from engine.tools.finance import FinanceModule
 from engine.llm.prompt_engineering import PromptBuilder, PromptOptimizer
-=======
-from engine.ollama_tool import OllamaTool
-from engine.finance_module import FinanceModule
-from engine.prompt_engineering import PromptBuilder, PromptOptimizer
 from menu_question_based import menu_question_based
->>>>>>> c0f2367 (feat: question_based v2 - iterative reasoning with LLM, KG, auto-researcher, integrated menu)
 
 
 def print_header():
@@ -134,12 +128,6 @@ def menu_chat(engine, ollama, model_name):
                 print(f"  📊 Regole: {len(info['rules'])}")
                 continue
 
-            if user_input.startswith(":math "):
-                expr = user_input[6:]
-                result = engine.math.solve(expr)
-                print(f"  → {result['explanation']}")
-                continue
-
             if user_input.startswith(":finance"):
                 print("  Calcoli finanziari:")
                 print("    1. Interesse composto")
@@ -177,6 +165,12 @@ def menu_chat(engine, ollama, model_name):
                 print(f"  {p.prompt[:300]}...")
                 continue
 
+            if user_input.startswith(":learn "):
+                concept = user_input[7:]
+                engine.learn(concept, examples=[], description=concept)
+                print(f"  → Imparato: {concept}")
+                continue
+
             if user_input.startswith(":math "):
                 expr = user_input[6:]
                 # Prova prima la risoluzione simbolica
@@ -210,12 +204,6 @@ def menu_chat(engine, ollama, model_name):
                     print(f"  ❌ Errore: {llm_result.get('error', 'sconosciuto')}")
             else:
                 print(f"  🧠 {result.answer if result.answer else 'Non so rispondere'}")
-
-            if user_input.startswith(":learn "):
-                concept = user_input[7:]
-                engine.learn(concept, examples=[], description=concept)
-                print(f"  → Imparato: {concept}")
-                continue
 
         except KeyboardInterrupt:
             print("\n  Usa :quit per uscire o :menu per il menu")

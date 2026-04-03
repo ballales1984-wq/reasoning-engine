@@ -44,9 +44,6 @@
 - Estrazione entita, numeri, operatori, relazioni
 - Supporto italiano + inglese
 
-<<<<<<< HEAD
-## Installazione
-=======
 ### 📝 Prompt Engineering
 - 8 template (zero-shot, few-shot, CoT, ToT, etc.)
 - 8 stili (semplice, tecnico, creativo, etc.)
@@ -65,7 +62,6 @@ _funziona come un detective: non indovina, indaga_
 ## Come si usa
 
 ### Scarica e installa
->>>>>>> c0f2367 (feat: question_based v2 - iterative reasoning with LLM, KG, auto-researcher, integrated menu)
 
 ```bash
 git clone https://github.com/ballales1984-wq/reasoning-engine.git

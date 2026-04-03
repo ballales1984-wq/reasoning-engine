@@ -91,6 +91,8 @@ class QuestionReasoner:
             - message: messaggio esplicativo
         """
         iteration = 0
+        status = None
+        message = ""
         
         while iteration < max_iterations:
             iteration += 1
@@ -118,7 +120,7 @@ class QuestionReasoner:
                     answer = result
                     confidence = AnswerConfidence.HIGH
                     
-            except Exception as e:
+            except Exception:
                 # Se il callback fallisce, termina
                 break
             
@@ -147,6 +149,12 @@ class QuestionReasoner:
             if status != ReasoningStatus.AMBIGUOUS:  # Continua solo se ambiguo
                 break
         
+        if status is None:
+            status, message = self._check_stopping_conditions()
+        if status is None:
+            status = ReasoningStatus.UNDECIDABLE
+            message = "Ragionamento terminato senza conclusione certa"
+
         # Costruisci risultato finale
         return self._build_result(status, message)
     
