@@ -1,4 +1,5 @@
 import re
+import os
 from .core.types import (
     Entity,
     ParsedQuery,
@@ -82,9 +83,32 @@ class ReasoningEngine:
         self.knowledge.save()
         return f"Ho imparato: {concept} [Canale: {channel}]"
 
-    def save(self):
-        """Salva tutta la conoscenza su disco."""
-        self.knowledge.save()
+    def _state_path(self, name: str = "default", directory: str = None) -> str:
+        """Costruisce il percorso del file di stato."""
+        filename = name if str(name).endswith(".json") else f"{name}.json"
+        if directory:
+            return os.path.join(directory, filename)
+        return os.path.join(os.path.dirname(__file__), "..", "data", filename)
+
+    def save(self, name: str = "default", directory: str = None) -> str:
+        """Salva la conoscenza su disco e ritorna il path usato."""
+        if name == "default" and directory is None:
+            self.knowledge.save()
+            return os.path.join(os.path.dirname(__file__), "..", "data", "knowledge.json")
+        path = self._state_path(name, directory)
+        self.knowledge.save(path)
+        return path
+
+    def load(self, name: str = "default", directory: str = None) -> bool:
+        """Carica conoscenza da disco; ritorna True se il file esiste."""
+        if name == "default" and directory is None:
+            self.knowledge.load()
+            return True
+        path = self._state_path(name, directory)
+        if not os.path.exists(path):
+            return False
+        self.knowledge.load(path)
+        return True
 
     def learn_rule(
         self,
@@ -108,7 +132,46 @@ class ReasoningEngine:
         parsed_dict = self._parse_question(question)
         parsed = parsed_dict["_parsed"]
 
-        # 2. Fast-Path: Identity Handling (Sistema 1)
+        # 2. Fast-Path: Calcolo matematico diretto (prima del multi-agent)
+        math_ops = {
+            "addition",
+            "subtraction",
+            "multiplication",
+            "division",
+            "power",
+            "sqrt",
+            "percentage",
+            "factorial",
+            "area_circle",
+            "perimeter_circle",
+            "area_rectangle",
+            "area_triangle",
+            "pythagoras",
+            "volume_cube",
+            "volume_sphere",
+            "equation",
+        }
+        if parsed.intent == "calculate" or parsed.operation in math_ops:
+            math_res = self.math.solve(question)
+            if math_res.get("answer") is not None:
+                return ReasoningResult(
+                    answer=math_res.get("answer"),
+                    confidence=1.0,
+                    reasoning_type="math",
+                    steps=[
+                        ReasoningStep(
+                            type="math",
+                            description="Risoluzione diretta tramite MathModule",
+                            input=question,
+                            output=math_res,
+                            channel="math_module",
+                        )
+                    ],
+                    explanation=math_res.get("explanation", ""),
+                    verified=True,
+                )
+
+        # 3. Fast-Path: Identity Handling (Sistema 1)
         if parsed.intent == "identity":
             identity = self.knowledge.get("self_identity")
             if identity:
@@ -128,15 +191,15 @@ class ReasoningEngine:
                     explanation="Accesso diretto all'identità di sistema.",
                 )
 
-        # 3. Slow-Path: Multi-Agent Orchestration (Sistema 2)
+        # 4. Slow-Path: Multi-Agent Orchestration (Sistema 2)
         # Il manager coordina Researcher -> Analyst -> Critic
         agent_res = self.agents.orchestrate(question, parsed_dict)
 
-        # 4. Verifica Finale Coerenza (rinforzata oltre il Critic)
+        # 5. Verifica Finale Coerenza (rinforzata oltre il Critic)
         verified = agent_res.get("status") == "approved"
         agent_steps = agent_res.get("steps", [])
 
-        # 5. Salva nel contesto conversazione
+        # 6. Salva nel contesto conversazione
         self.conversation_history.append(
             {
                 "question": question,
@@ -148,14 +211,14 @@ class ReasoningEngine:
             }
         )
 
-        # 6. Generazione Spiegazione Finale
+        # 7. Generazione Spiegazione Finale
         final_explanation = self.explainer.generate(
             [s.description for s in agent_steps], {"answer": agent_res["answer"]}
         )
         if agent_res.get("feedback"):
             final_explanation += f"\n[Critica AI: {agent_res['feedback']}]"
 
-        # 7. Fallback to LLM if agent didn't produce a useful answer
+        # 8. Fallback to LLM if agent didn't produce a useful answer
         if agent_res.get("answer") is None and use_llm and self.llm.is_available():
             llm_res = self.llm.fallback_solve(question)
             if llm_res.facts:

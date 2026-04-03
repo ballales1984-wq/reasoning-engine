@@ -21,6 +21,7 @@ Avvio:
 import json
 import sys
 import os
+from dataclasses import asdict, is_dataclass
 from http.server import HTTPServer, BaseHTTPRequestHandler
 from urllib.parse import urlparse, parse_qs
 
@@ -35,6 +36,17 @@ from engine import ReasoningEngine
 # ============================================================
 
 _engine = None
+
+
+def _to_jsonable(value):
+    """Converte dataclass e oggetti custom in strutture JSON-serializzabili."""
+    if is_dataclass(value):
+        return asdict(value)
+    if isinstance(value, dict):
+        return {k: _to_jsonable(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_to_jsonable(v) for v in value]
+    return value
 
 def get_engine(llm_key=None):
     global _engine
@@ -116,8 +128,8 @@ class APIHandler(BaseHTTPRequestHandler):
             info = engine.what_do_you_know()
             self._json_response({
                 "status": "ok",
-                "concepts": info["stats"]["total_concepts"],
-                "rules": info["stats"]["total_rules"],
+                "concepts": len(info.get("concepts", [])),
+                "rules": len(info.get("rules", [])),
             })
 
         elif path == "/knowledge":
@@ -162,7 +174,7 @@ class APIHandler(BaseHTTPRequestHandler):
                 return
 
             result = engine.reason(question, use_llm=use_llm)
-            self._json_response(result)
+            self._json_response(_to_jsonable(result))
 
         # POST /learn
         elif path == "/learn":
@@ -262,8 +274,8 @@ def main():
     print("🧠 ReasoningEngine API")
     print("=" * 50)
     print(f"  Host: {args.host}:{args.port}")
-    print(f"  Concetti: {info['stats']['total_concepts']}")
-    print(f"  Regole: {info['stats']['total_rules']}")
+    print(f"  Concetti: {len(info.get('concepts', []))}")
+    print(f"  Regole: {len(info.get('rules', []))}")
     print(f"  LLM: {'✅ configurato' if args.llm_key else '❌ non configurato'}")
     print(f"\n  Endpoints:")
     print(f"    POST /reason       — Ragiona su una domanda")
