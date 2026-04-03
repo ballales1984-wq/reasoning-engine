@@ -1,4 +1,4 @@
-from typing import Dict, Any
+from typing import Dict, Any, List, Tuple
 import math
 from .hypothesis_space import HypothesisSpace, Hypothesis
 
@@ -6,6 +6,31 @@ from .hypothesis_space import HypothesisSpace, Hypothesis
 class ProbabilityUpdater:
     def __init__(self, smoothing: float = 0.01):
         self.smoothing = smoothing
+
+    def _extract_feature_from_question(self, question: str) -> Tuple[str, bool]:
+        """Estrae la feature e il valore atteso dalla domanda."""
+        question_lower = question.lower()
+
+        # Mappatura domande -> (feature, expected_value)
+        mappings = [
+            (("domestico", "domestico"), True),
+            (("coda lunga", "coda_lunga"), True),
+            (("colore rosso", "colore"), "rosso"),
+            (("rosso", "rosso"), True),
+            (("primario", "primario"), True),
+            (("caldo", "caldo"), True),
+            (("team", "team"), True),
+            (("palla", "palla"), True),
+        ]
+
+        for keywords, feature in mappings:
+            for kw in keywords:
+                if kw in question_lower:
+                    if isinstance(feature, tuple):
+                        return feature[0], feature[1]
+                    return feature, True
+
+        return "unknown", True
 
     def bayesian_update(
         self,
@@ -34,13 +59,26 @@ class ProbabilityUpdater:
         answer: bool,
         strength: float = 0.3,
     ) -> HypothesisSpace:
+        feature, expected_value = self._extract_feature_from_question(question)
+
         for h_id, h in hypothesis_space.hypotheses.items():
-            if answer:
+            feature_value = h.features.get(feature, None)
+
+            if feature_value is None:
+                continue
+
+            matches = feature_value == expected_value
+
+            if answer and matches:
                 factor = 1 + strength
+            elif not answer and not matches:
+                factor = 1 + strength
+            elif answer and not matches:
+                factor = 1 - strength
             else:
                 factor = 1 - strength
 
-            h.probability = h.probability * factor
+            h.probability = max(self.smoothing, h.probability * factor)
 
         hypothesis_space.renormalize()
         return hypothesis_space
