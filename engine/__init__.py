@@ -167,17 +167,8 @@ class ReasoningEngine:
                 verified=True,
             )
 
-        # 3. Fast-Path: Richiesta capacità/identità
-        capability_phrases = {
-            "cosa sai fare",
-            "che sai fare",
-            "cosa puoi fare",
-            "chi sei",
-            "dimmi di te",
-            "what can you do",
-            "who are you",
-        }
-        if normalized in capability_phrases:
+        # 3. Fast-Path: Richiesta capacità/identità (generale, non frase-per-frase)
+        if self._is_capability_question(question, normalized, parsed):
             identity = self.knowledge.get("self_identity")
             if identity:
                 best = identity.get_best_info()
@@ -337,6 +328,48 @@ class ReasoningEngine:
             "confidence": parsed.confidence,
             "_parsed": parsed,
         }
+
+    def _is_capability_question(self, raw: str, normalized: str, parsed) -> bool:
+        """Riconosce domande su identità/capacità con euristiche robuste."""
+        if parsed.intent == "identity":
+            return True
+
+        text = normalized
+        if not text:
+            return False
+
+        # Pattern IT/EN più ampi (evita dipendenza da stringhe esatte).
+        patterns = [
+            r"\bchi\s+sei\b",
+            r"\bdimmi\s+di\s+te\b",
+            r"\b(cosa|che)\b.*\b(sai|puoi)\b.*\b(fare|aiutare)\b",
+            r"\b(in\s+cosa|come)\b.*\bpuoi\b.*\b(aiutare)\b",
+            r"\b(quali|che)\b.*\b(tue|tuoi)\b.*\b(capacità|capacita|funzioni|abilità|abilita)\b",
+            r"\bwhat\s+can\s+you\s+do\b",
+            r"\bhow\s+can\s+you\s+help\b",
+            r"\btell\s+me\s+about\s+yourself\b",
+        ]
+        for pat in patterns:
+            if re.search(pat, text):
+                return True
+
+        # Fallback euristico per domande brevi su "tu + poter/sapere + azione".
+        tokens = text.split()
+        if len(tokens) <= 12 and any(t in tokens for t in ["tu", "you"]):
+            has_modal = any(t in tokens for t in ["puoi", "sai", "can"])
+            has_action = any(
+                t in tokens
+                for t in [
+                    "fare",
+                    "aiutare",
+                    "help",
+                    "do",
+                ]
+            )
+            if has_modal and has_action:
+                return True
+
+        return False
 
     def what_do_you_know(self) -> dict:
         """Mostra tutto ciò che l'engine ha imparato."""

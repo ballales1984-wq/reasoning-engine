@@ -115,5 +115,18 @@
       "source": "travel_guide"
     },
     "timestamp": 1775079460.5045655
+  },
+  {
+    "text": "La capitale della Francia è Parigi, una città ricca di storia e arte.",
+    "embedding": [
+      0.1,
+      0.2,
+      0.3,
+      0.4
+    ],
+    "metadata": {
+      "source": "travel_guide"
+    },
+    "timestamp": 1775242892.8817174
   }
 ]
