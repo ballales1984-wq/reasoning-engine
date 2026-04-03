@@ -132,7 +132,73 @@ class ReasoningEngine:
         parsed_dict = self._parse_question(question)
         parsed = parsed_dict["_parsed"]
 
-        # 2. Fast-Path: Calcolo matematico diretto (prima del multi-agent)
+        # 2. Fast-Path: Saluti brevi (evita risposte "sporche" dal KG)
+        normalized = re.sub(r"[^\w\s]", "", question.lower()).strip()
+        greeting_tokens = set(normalized.split())
+        greeting_words = {
+            "ciao",
+            "salve",
+            "hey",
+            "hello",
+            "hi",
+            "buongiorno",
+            "buonasera",
+            "buonanotte",
+        }
+        if (
+            normalized
+            and len(greeting_tokens) <= 3
+            and greeting_tokens.issubset(greeting_words)
+        ):
+            return ReasoningResult(
+                answer="Ciao! Ci sono, dimmi pure come ti posso aiutare.",
+                confidence=1.0,
+                reasoning_type="greeting",
+                steps=[
+                    ReasoningStep(
+                        type="greeting",
+                        description="Gestione diretta del saluto",
+                        input=question,
+                        output="saluto_riconosciuto",
+                        channel="system",
+                    )
+                ],
+                explanation="Risposta rapida di saluto.",
+                verified=True,
+            )
+
+        # 3. Fast-Path: Richiesta capacità/identità
+        capability_phrases = {
+            "cosa sai fare",
+            "che sai fare",
+            "cosa puoi fare",
+            "chi sei",
+            "dimmi di te",
+            "what can you do",
+            "who are you",
+        }
+        if normalized in capability_phrases:
+            identity = self.knowledge.get("self_identity")
+            if identity:
+                best = identity.get_best_info()
+                return ReasoningResult(
+                    answer=best["description"],
+                    confidence=1.0,
+                    reasoning_type="identity",
+                    steps=[
+                        ReasoningStep(
+                            type="identity",
+                            description="Risposta diretta su identità e capacità",
+                            input=question,
+                            output=best,
+                            channel="system",
+                        )
+                    ],
+                    explanation="Accesso diretto alle capacità di sistema.",
+                    verified=True,
+                )
+
+        # 4. Fast-Path: Calcolo matematico diretto (prima del multi-agent)
         math_ops = {
             "addition",
             "subtraction",
@@ -171,7 +237,7 @@ class ReasoningEngine:
                     verified=True,
                 )
 
-        # 3. Fast-Path: Identity Handling (Sistema 1)
+        # 5. Fast-Path: Identity Handling (Sistema 1)
         if parsed.intent == "identity":
             identity = self.knowledge.get("self_identity")
             if identity:
@@ -191,15 +257,15 @@ class ReasoningEngine:
                     explanation="Accesso diretto all'identità di sistema.",
                 )
 
-        # 4. Slow-Path: Multi-Agent Orchestration (Sistema 2)
+        # 6. Slow-Path: Multi-Agent Orchestration (Sistema 2)
         # Il manager coordina Researcher -> Analyst -> Critic
         agent_res = self.agents.orchestrate(question, parsed_dict)
 
-        # 5. Verifica Finale Coerenza (rinforzata oltre il Critic)
+        # 7. Verifica Finale Coerenza (rinforzata oltre il Critic)
         verified = agent_res.get("status") == "approved"
         agent_steps = agent_res.get("steps", [])
 
-        # 6. Salva nel contesto conversazione
+        # 8. Salva nel contesto conversazione
         self.conversation_history.append(
             {
                 "question": question,
@@ -211,14 +277,14 @@ class ReasoningEngine:
             }
         )
 
-        # 7. Generazione Spiegazione Finale
+        # 9. Generazione Spiegazione Finale
         final_explanation = self.explainer.generate(
             [s.description for s in agent_steps], {"answer": agent_res["answer"]}
         )
         if agent_res.get("feedback"):
             final_explanation += f"\n[Critica AI: {agent_res['feedback']}]"
 
-        # 8. Fallback to LLM if agent didn't produce a useful answer
+        # 10. Fallback to LLM if agent didn't produce a useful answer
         if agent_res.get("answer") is None and use_llm and self.llm.is_available():
             llm_res = self.llm.fallback_solve(question)
             if llm_res.facts:
