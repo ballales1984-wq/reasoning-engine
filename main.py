@@ -11,9 +11,16 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 from engine import ReasoningEngine
+<<<<<<< HEAD
 from engine.llm.ollama import OllamaTool
 from engine.tools.finance import FinanceModule
 from engine.llm.prompt_engineering import PromptBuilder, PromptOptimizer
+=======
+from engine.ollama_tool import OllamaTool
+from engine.finance_module import FinanceModule
+from engine.prompt_engineering import PromptBuilder, PromptOptimizer
+from menu_question_based import menu_question_based
+>>>>>>> c0f2367 (feat: question_based v2 - iterative reasoning with LLM, KG, auto-researcher, integrated menu)
 
 
 def print_header():
@@ -338,12 +345,13 @@ def main():
         print("  ║  2. 📐 Demo Matematica                ║")
         print("  ║  3. 💰 Demo Finanza                   ║")
         print("  ║  4. 🧪 Esegui Test                    ║")
-        print("  ║  5. 🤖 Configura Ollama               ║")
-        print("  ║  6. 🚀 Esci                           ║")
+        print("  ║  5. 🎯 Question-Based Reasoner       ║")
+        print("  ║  6. 🤖 Configura Ollama               ║")
+        print("  ║  7. 🚀 Esci                           ║")
         print("  ╚════════════════════════════════════════╝")
         print()
 
-        scelta = input("  Scegli (1-6): ").strip()
+        scelta = input("  Scegli (1-7): ").strip()
 
         if scelta == "1":
             # Seleziona modello se Ollama è disponibile
@@ -365,11 +373,14 @@ def main():
             menu_test(engine)
 
         elif scelta == "5":
+            menu_question_based()
+
+        elif scelta == "6":
             menu_ollama(ollama, models)
             # Ricarica modelli
             ollama, models = detect_ollama()
 
-        elif scelta == "6" or scelta.lower() == "quit":
+        elif scelta == "7" or scelta.lower() == "quit":
             print()
             print("  Arrivederci! 👋")
             break

@@ -1,113 +1,245 @@
-from typing import List, Dict, Any, Optional, Callable
-import json
-from .hypothesis_space import HypothesisSpace, Hypothesis
+"""
+QuestionReasoner - Ciclo completo di ragionamento
+
+Il cuore del sistema:
+1. Genera domande utili
+2. Seleziona la migliore (information gain)
+3. Chiede la risposta (callback)
+4. Aggiorna ipotesi e probabilità
+5. Verifica confidence threshold
+6. Ripete finché non ci sono più domande utili o soglia raggiunta
+7. Restituisce la conclusione finale + trace
+"""
+
+from enum import Enum
+
 from .question_generator import QuestionGenerator
-from .information_gain import InformationGainSelector
-from .probability_updater import ProbabilityUpdater
+from .information_gain import InformationGain
+from .probability_updater import ProbabilityUpdater, AnswerConfidence
 from .explainer import Explainer
 
 
+class AnswerType(Enum):
+    """Tipi di risposta supportati."""
+    TRUE = True
+    FALSE = False
+    UNKNOWN = "unknown"
+    MAYBE = "maybe"
+
+
+class ReasoningStatus(Enum):
+    """Stato finale del ragionamento."""
+    SUCCESS = "success"              # Una sola ipotesi chiara
+    AMBIGUOUS = "ambiguous"          # Più ipotesi con probabilità simile
+    UNDECIDABLE = "undecidable"       # Nessuna domanda utile rimasta
+    INCONSISTENT = "inconsistent"     # 0 ipotesi (risposte contraddittorie)
+
+
 class QuestionReasoner:
+    """
+    Main reasoning loop: asks questions until a conclusion is reached.
+    
+    Features:
+    - Confidence threshold per stop condition
+    - Supporto risposte unknown/maybe
+    - Rilevamento stati ambigui/inconsistenti
+    - Spiegazione completa del percorso
+    """
+    
     def __init__(
         self,
-        domain: str = "general",
-        max_iterations: int = 10,
-        confidence_threshold: float = 0.85,
-        llm_provider: Optional[Callable] = None,
+        space,
+        confidence_threshold: float = 0.95,
+        ambiguity_threshold: float = 0.1
     ):
-        self.domain = domain
-        self.max_iterations = max_iterations
+        """
+        Args:
+            space: HypothesisSpace instance
+            confidence_threshold: Soglia per dichiarare successo (default 0.95)
+            ambiguity_threshold: Differenza massima per considerare ambiguità (default 0.1)
+        """
+        self.space = space
         self.confidence_threshold = confidence_threshold
-        self.llm_provider = llm_provider
-
-        self.hypothesis_space = HypothesisSpace(domain)
-        self.question_generator = QuestionGenerator(domain)
-        self.selector = InformationGainSelector()
-        self.updater = ProbabilityUpdater()
+        self.ambiguity_threshold = ambiguity_threshold
+        
+        self.generator = QuestionGenerator(space)
+        self.selector = InformationGain(space)
+        self.updater = SoftProbabilityUpdater(space)
         self.explainer = Explainer()
-
-        self.trace: List[Dict[str, Any]] = []
-
-    def add_hypotheses(self, hypotheses: List[Dict[str, Any]]):
-        for h in hypotheses:
-            hypothesis = Hypothesis(
-                id=h["id"],
-                name=h["name"],
-                probability=h.get("probability", 1.0 / len(hypotheses)),
-                features=h.get("features", {}),
-                evidence=h.get("evidence", []),
-            )
-            self.hypothesis_space.add_hypothesis(hypothesis)
-        self.hypothesis_space.renormalize()
-
-    def step(self, question: str, answer: bool) -> Dict[str, Any]:
-        top = self.hypothesis_space.get_top_hypothesis()
-        confidence = top.probability if top else 0
-
-        self.updater.soft_update(self.hypothesis_space, question, answer, strength=0.5)
-
-        new_top = self.hypothesis_space.get_top_hypothesis()
-        new_confidence = new_top.probability if new_top else 0
-
-        step_result = {
-            "question": question,
-            "answer": answer,
-            "top_hypothesis": new_top.name if new_top else None,
-            "confidence": new_confidence,
-            "entropy": self.hypothesis_space.get_entropy(),
-        }
-
-        self.trace.append(step_result)
-        self.explainer.add_step(step_result)
-
-        return step_result
-
-    def generate_next_question(self) -> Optional[str]:
-        candidates = self.question_generator.get_questions(self.domain)
-
-        if not candidates:
-            return None
-
-        if self.llm_provider and self.hypothesis_space.all_hypotheses():
-            features = list(self.hypothesis_space.all_hypotheses()[0].features.keys())
-            if features:
-                return self.question_generator.generate_question(
-                    features[0], self.domain
-                )
-
-        return candidates[len(self.trace) % len(candidates)]
-
-    def run(self, ask_callback: Callable[[str], bool]) -> Dict[str, Any]:
-        for i in range(self.max_iterations):
-            top = self.hypothesis_space.get_top_hypothesis()
-
-            if top and top.probability >= self.confidence_threshold:
-                return {
-                    "result": top,
-                    "iterations": i + 1,
-                    "trace": self.trace,
-                    "explanation": self.explainer.get_summary(),
-                }
-
-            question = self.generate_next_question()
-            if not question:
+    
+    def run(
+        self,
+        answer_callback,
+        max_iterations: int = 20,
+        allow_unknown: bool = True
+    ):
+        """
+        Esegue il ciclo di ragionamento.
+        
+        Args:
+            answer_callback: Funzione che riceve la domanda e ritorna la risposta
+                           Formato: (value, confidence) o solo value
+            max_iterations: Limite massimo di domande (safety)
+            allow_unknown: Se True, accetta risposte unknown
+            
+        Returns:
+            dict con:
+            - final_hypothesis: ipotesi finale o None
+            - status: ReasoningStatus
+            - trace: log completo del ragionamento
+            - final_probabilities: probabilità finali
+            - message: messaggio esplicativo
+        """
+        iteration = 0
+        
+        while iteration < max_iterations:
+            iteration += 1
+            
+            # 1. Genera domande
+            questions = self.generator.generate()
+            
+            # Se non ci sono più domande, fermati
+            if not questions:
                 break
-
-            answer = ask_callback(question)
-            self.step(question, answer)
-
+            
+            # 2. Seleziona la migliore
+            best_q = self.selector.best_question(questions)
+            if not best_q:
+                break
+            
+            # 3. Chiedi la risposta
+            try:
+                result = answer_callback(best_q)
+                
+                # Supporta formati: solo valore o (valore, confidenza)
+                if isinstance(result, tuple):
+                    answer, confidence = result
+                else:
+                    answer = result
+                    confidence = AnswerConfidence.HIGH
+                    
+            except Exception as e:
+                # Se il callback fallisce, termina
+                break
+            
+            # 4. Gestisci risposte speciali
+            if allow_unknown and answer in [AnswerType.UNKNOWN, AnswerType.MAYBE, "unknown", "maybe", "non_so", "ns"]:
+                # Risposta incerta: riduci pesi ma non azzerare
+                self.updater.update(best_q, answer, AnswerConfidence.UNKNOWN)
+            else:
+                # Risposta normale: usa confidenza specificata
+                self.updater.update(best_q, answer, confidence)
+            
+            # 5. Log
+            self.explainer.log(
+                question=best_q,
+                answer=answer,
+                remaining=self.space.remaining(),
+                priors=dict(self.space.priors)
+            )
+            
+            # 6. Aggiorna stato ipotesi
+            if confidence == AnswerConfidence.HIGH:
+                self.space.filter(best_q, answer)
+            
+            # 7. Verifica confidence threshold
+            status, message = self._check_stopping_conditions()
+            if status != ReasoningStatus.AMBIGUOUS:  # Continua solo se ambiguo
+                break
+        
+        # Costruisci risultato finale
+        return self._build_result(status, message)
+    
+    def _check_stopping_conditions(self):
+        """
+        Verifica le condizioni di stop.
+        
+        Returns:
+            (ReasoningStatus, message)
+        """
+        active = self.space.remaining()
+        
+        # Caso 1: 0 ipotesi (inconsistente)
+        if len(active) == 0:
+            return ReasoningStatus.INCONSISTENT, "Risposte contraddittorie: nessuna ipotesi compatibile"
+        
+        # Caso 2: 1 ipotesi con alta confidenza
+        if len(active) == 1:
+            h = active[0]
+            if self.space.priors[h] >= self.confidence_threshold:
+                return ReasoningStatus.SUCCESS, f"Conclusione: {h}"
+        
+        # Caso 3: più ipotesi, verifica se ambigue
+        if len(active) > 1:
+            sorted_h = sorted(active, key=lambda h: self.space.priors[h], reverse=True)
+            top_prob = self.space.priors[sorted_h[0]]
+            second_prob = self.space.priors[sorted_h[1]] if len(sorted_h) > 1 else 0
+            
+            # Se la differenza è piccola → ambiguo
+            if top_prob - second_prob < self.ambiguity_threshold:
+                return ReasoningStatus.AMBIGUOUS, f"Più ipotesi plausibili: {active}"
+            
+            # Se la top è sopra soglia → success
+            if top_prob >= self.confidence_threshold:
+                return ReasoningStatus.SUCCESS, f"Conclusione: {sorted_h[0]}"
+        
+        # Caso 4: non ci sono più domande utili
+        questions = self.generator.generate()
+        if not questions:
+            return ReasoningStatus.UNDECIDABLE, "Nessuna domanda utile per distinguere le ipotesi rimanenti"
+        
+        # Nessuna condizione di stop soddisfatta → continua
+        return None, None
+    
+    def _build_result(self, status: ReasoningStatus, message: str):
+        """Costruisce il risultato finale."""
+        active = self.space.remaining()
+        
+        # Determina final_hypothesis basato sullo stato
+        if status == ReasoningStatus.SUCCESS:
+            final_hypothesis = active[0] if active else None
+        elif status == ReasoningStatus.AMBIGUOUS:
+            final_hypothesis = active  # Lista di ipotesi
+        else:
+            final_hypothesis = None
+        
         return {
-            "result": self.hypothesis_space.get_top_hypothesis(),
-            "iterations": self.max_iterations,
-            "trace": self.trace,
-            "explanation": self.explainer.get_summary(),
+            "final_hypothesis": final_hypothesis,
+            "status": status.value,
+            "message": message,
+            "trace": self.explainer.trace,
+            "final_probabilities": dict(self.space.priors),
+            "num_steps": len(self.explainer.trace)
         }
+    
+    def run_interactive(self, ask_func=None):
+        """
+        Esegue in modalità interattiva (per testing/demo).
+        
+        Args:
+            ask_func: Funzione custom per fare domande
+                     Se None, usa input()
+        """
+        def default_handler(feature):
+            readable = feature.replace("_", " ")
+            response = input(f"Ha la caratteristica '{readable}'? (s/n/?): ")
+            
+            if response.lower() in ["s", "si", "y", "yes", "true"]:
+                return True, AnswerConfidence.HIGH
+            elif response.lower() in ["n", "no", "false"]:
+                return False, AnswerConfidence.HIGH
+            elif response in ["?", "non_so", "ns", "unknown"]:
+                return "unknown", AnswerConfidence.UNKNOWN
+            else:
+                return "maybe", AnswerConfidence.LOW
+        
+        handler = ask_func or default_handler
+        return self.run(handler)
+    
+    def __repr__(self):
+        active = len(self.space.remaining())
+        return f"QuestionReasoner(active={active}, threshold={self.confidence_threshold})"
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {
-            "domain": self.domain,
-            "max_iterations": self.max_iterations,
-            "confidence_threshold": self.confidence_threshold,
-            "hypothesis_space": self.hypothesis_space.to_dict(),
-            "trace": self.trace,
-        }
+
+# Import SoftProbabilityUpdater for the updater in __init__
+from .probability_updater import SoftProbabilityUpdater

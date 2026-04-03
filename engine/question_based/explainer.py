@@ -1,46 +1,100 @@
-from typing import List, Dict, Any, Optional
-from datetime import datetime
+"""
+Explainer - Tracciamento e spiegazione del ragionamento
+
+Tiene traccia di:
+- ogni domanda fatta
+- ogni risposta ricevuta
+- ipotesi rimanenti dopo ogni passo
+- probabilità dopo ogni passo
+
+Genera una spiegazione completa del percorso logico.
+"""
 
 
 class Explainer:
+    """
+    Tracks reasoning path and produces final explanation.
+    
+    Maintains a trace of all questions, answers, and state updates.
+    """
+    
     def __init__(self):
-        self.steps: List[Dict[str, Any]] = []
-        self.start_time: Optional[datetime] = None
-
-    def add_step(self, step: Dict[str, Any]):
-        if not self.start_time:
-            self.start_time = datetime.now()
-        step["timestamp"] = datetime.now().isoformat()
-        self.steps.append(step)
-
-    def get_summary(self) -> str:
-        if not self.steps:
-            return "Nessun ragionamento effettuato."
-
-        lines = ["=== TRACE DEL RAGIONAMENTO ==="]
-
-        for i, step in enumerate(self.steps, 1):
-            answer_str = "SI" if step.get("answer") else "NO"
-            lines.append(f"\nStep {i}:")
-            lines.append(f"  Domanda: {step.get('question', 'N/A')}")
-            lines.append(f"  Risposta: {answer_str}")
-            lines.append(f"  Top ipotesi: {step.get('top_hypothesis', 'N/A')}")
-            lines.append(f"  Confidenza: {step.get('confidence', 0):.2%}")
-            lines.append(f"  Entropia: {step.get('entropy', 0):.4f}")
-
-        final = self.steps[-1]
-        lines.append(f"\n=== RISULTATO FINALE ===")
-        lines.append(f"Ipotesi: {final.get('top_hypothesis', 'N/A')}")
-        lines.append(f"Confidenza: {final.get('confidence', 0):.2%}")
-
-        return "\n".join(lines)
-
-    def get_trace(self) -> List[Dict[str, Any]]:
-        return self.steps.copy()
-
-    def to_dict(self) -> Dict[str, Any]:
+        self.trace = []
+    
+    def log(self, question: str, answer, remaining: list, priors: dict):
+        """
+        Registra un passo del ragionamento.
+        
+        Args:
+            question: Feature chiesto
+            answer: Risposta ricevuta
+            remaining: Ipotesi rimaste
+            priors: Probabilità attuali
+        """
+        self.trace.append({
+            "question": question,
+            "answer": answer,
+            "remaining": list(remaining),
+            "probabilities": dict(priors)
+        })
+    
+    def build(self, space):
+        """
+        Costruisce il risultato finale.
+        
+        Args:
+            space: HypothesisSpace finale
+            
+        Returns:
+            dict con final_hypothesis, trace, final_probabilities
+        """
+        final_remaining = space.remaining()
+        
+        # Se una sola ipotesi, quella è la conclusione
+        if len(final_remaining) == 1:
+            final_hypothesis = final_remaining[0]
+        else:
+            # Se più ipotesi, restituisci la più probabile
+            final_hypothesis = max(
+                final_remaining,
+                key=lambda h: space.priors.get(h, 0)
+            )
+        
         return {
-            "steps": self.steps,
-            "total_steps": len(self.steps),
-            "start_time": self.start_time.isoformat() if self.start_time else None,
+            "final_hypothesis": final_hypothesis,
+            "final_probabilities": dict(space.priors),
+            "trace": self.trace,
+            "num_steps": len(self.trace)
         }
+    
+    def summary(self) -> str:
+        """
+        Genera un summary leggibile.
+        
+        Returns:
+            Stringa con il trace formattato
+        """
+        if not self.trace:
+            return "Nessun passo registrato."
+        
+        lines = ["📋 Reasoning Trace:", ""]
+        
+        for i, step in enumerate(self.trace, 1):
+            q = step["question"].replace("_", " ")
+            a = step["answer"]
+            r = len(step["remaining"])
+            lines.append(f"{i}. Domanda: '{q}' → Risposta: {a}")
+            lines.append(f"   Ipotesi rimanenti: {r}")
+            lines.append("")
+        
+        return "\n".join(lines)
+    
+    def clear(self):
+        """Pulisce il trace."""
+        self.trace = []
+    
+    def __len__(self):
+        return len(self.trace)
+    
+    def __repr__(self):
+        return f"Explainer(steps={len(self.trace)})"

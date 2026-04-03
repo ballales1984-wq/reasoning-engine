@@ -1,99 +1,121 @@
-from typing import Dict, Any, List, Tuple
-import math
-from .hypothesis_space import HypothesisSpace, Hypothesis
+"""
+ProbabilityUpdater - Aggiornamento probabilità morbido (Bayesian)
+
+Supporta:
+- Risposte uncertain/unknown/maybe
+- Update morbido invece di azzeramento brutale
+- Confidence threshold per stop condition
+"""
+
+from enum import Enum
 
 
-class ProbabilityUpdater:
-    def __init__(self, smoothing: float = 0.01):
-        self.smoothing = smoothing
+class AnswerConfidence(Enum):
+    """Livelli di affidabilità della risposta."""
+    HIGH = 1.0      # Risposta sicura
+    MEDIUM = 0.7    # Risposta abbastanza sicura
+    LOW = 0.4       # Risposta incerta
+    UNKNOWN = 0.2   # "non so"
 
-    def _extract_feature_from_question(self, question: str) -> Tuple[str, Any]:
-        """Estrae la feature e il valore atteso dalla domanda."""
-        question_lower = question.lower()
 
-        # Mappatura domande -> (feature, expected_value)
-        mappings = [
-            ("domestico", "domestico"),
-            ("coda lunga", "coda_lunga"),
-            ("colore rosso", "colore"),
-            ("rosso", "rosso"),
-            ("primario", "primario"),
-            ("caldo", "caldo"),
-            ("team", "team"),
-            ("palla", "palla"),
-        ]
-
-        for pattern, feature in mappings:
-            if pattern in question_lower:
-                return feature, True
-
-        return "unknown", True
-
-    def bayesian_update(
-        self,
-        hypothesis_space: HypothesisSpace,
-        question: str,
-        answer: bool,
-        likelihood_yes: Dict[str, float],
-        likelihood_no: Dict[str, float],
-    ) -> HypothesisSpace:
-        likelihoods = likelihood_yes if answer else likelihood_no
-
-        for h_id, h in hypothesis_space.hypotheses.items():
-            prior = h.probability
-            likelihood = likelihoods.get(h_id, self.smoothing)
-
-            posterior = prior * likelihood
-            h.probability = max(self.smoothing, posterior)
-
-        hypothesis_space.renormalize()
-        return hypothesis_space
-
-    def soft_update(
-        self,
-        hypothesis_space: HypothesisSpace,
-        question: str,
-        answer: bool,
-        strength: float = 0.3,
-    ) -> HypothesisSpace:
-        feature, expected_value = self._extract_feature_from_question(question)
-
-        for h_id, h in hypothesis_space.hypotheses.items():
-            feature_value = h.features.get(feature, None)
-
-            if feature_value is None:
-                continue
-
-            matches = feature_value == expected_value
-
-            if answer and matches:
-                factor = 1 + strength
-            elif not answer and not matches:
-                factor = 1 + strength
-            elif answer and not matches:
-                factor = 1 - strength
-            else:
-                factor = 1 - strength
-
-            h.probability = max(self.smoothing, h.probability * factor)
-
-        hypothesis_space.renormalize()
-        return hypothesis_space
-
-    def entropy_weighted_update(
-        self,
-        hypothesis_space: HypothesisSpace,
-        question: str,
-        answer: bool,
-        entropy: float,
-    ) -> HypothesisSpace:
-        current_entropy = hypothesis_space.get_entropy()
-        if current_entropy > 0:
-            strength = min(0.5, entropy / current_entropy)
+class SoftProbabilityUpdater:
+    """
+    Aggiornamento probabilità morbido.
+    
+    Invece di azzerare brutalmente:
+    - Riduce il peso delle ipotesi incompatibili
+    - Tiene traccia delle ipotesi "debolmente compatibili"
+    - Supporta risposte uncertain/unknown
+    """
+    
+    # Fattore di riduzione per ogni livello di confidenza
+    PENALTY_FACTOR = {
+        AnswerConfidence.HIGH: 0.0,      # Azzera completamente
+        AnswerConfidence.MEDIUM: 0.1,    # Riduce a 10%
+        AnswerConfidence.LOW: 0.3,       # Riduce a 30%
+        AnswerConfidence.UNKNOWN: 0.8,   # Riduce a 80% (quasi nulla)
+    }
+    
+    def __init__(self, space):
+        """
+        Args:
+            space: HypothesisSpace instance
+        """
+        self.space = space
+        self.original_priors = dict(space.priors)  # Backup per reset
+    
+    def update(self, feature: str, value, confidence: AnswerConfidence = AnswerConfidence.HIGH):
+        """
+        Aggiorna le probabilità con logica morbida.
+        
+        Args:
+            feature: Feature a cui è stata data la risposta
+            value: Valore della risposta (True/False/unknown)
+            confidence: Livello di affidabilità della risposta
+        """
+        penalty = self.PENALTY_FACTOR[confidence]
+        
+        # Se unknown, riduci tutti i pesi di un po'
+        if confidence == AnswerConfidence.UNKNOWN:
+            for h in self.space.hypotheses:
+                self.space.priors[h] *= 0.5
+            self._normalize()
+            return
+        
+        # Per ogni ipotesi: riduci peso se incompatibile
+        for h in list(self.space.active):
+            hypothesis_value = self.space.hypotheses[h].get(feature)
+            
+            # Se valore noto e diverso dalla risposta
+            if hypothesis_value is not None and hypothesis_value != value:
+                # Applica penalità (non azzera completamente se confidence bassa)
+                self.space.priors[h] *= penalty
+        
+        # Rimuovi dalla lista attiva solo quelle con peso quasi zero
+        self.space.active = {
+            h for h in self.space.active
+            if self.space.priors[h] > 0.01  # Soglia per rimozione
+        }
+        
+        # Normalizza
+        self._normalize()
+    
+    def _normalize(self):
+        """Normalizza le probabilità (somma = 1)."""
+        total = sum(self.space.priors[h] for h in self.space.active)
+        
+        if total > 0:
+            for h in self.space.active:
+                self.space.priors[h] /= total
+    
+    def is_consistent(self) -> bool:
+        """Controlla se lo stato è inconsistente (tutti pesi a 0)."""
+        total = sum(self.space.priors[h] for h in self.space.hypotheses)
+        return total > 0
+    
+    def restore(self):
+        """Ripristina allo stato originale."""
+        self.space.priors = dict(self.original_priors)
+        self.space.active = set(self.space.hypotheses.keys())
+    
+    def reset(self, priors: dict = None):
+        """Resetta le probabilità ai valori iniziali."""
+        if priors:
+            self.space.priors = priors
+            self.original_priors = dict(priors)
         else:
-            strength = 0.3
+            n = len(self.space.hypotheses)
+            self.space.priors = {h: 1.0 / n for h in self.space.hypotheses}
+            self.original_priors = dict(self.space.priors)
+        
+        self.space.active = set(self.space.hypotheses.keys())
+    
+    def __repr__(self):
+        active = len(self.space.active)
+        return f"SoftProbabilityUpdater(active={active})"
 
-        return self.soft_update(hypothesis_space, question, answer, strength)
 
-    def to_dict(self) -> Dict[str, Any]:
-        return {"updater": "ProbabilityUpdater", "smoothing": self.smoothing}
+# Alias per retrocompatibilità
+class ProbabilityUpdater(SoftProbabilityUpdater):
+    """Legacy wrapper - usa SoftProbabilityUpdater."""
+    pass

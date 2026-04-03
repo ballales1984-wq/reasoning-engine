@@ -229,7 +229,51 @@ Concetto B: "l'atomo" (nucleo + elettroni in orbita)
 Analogia: "Un atomo è come un sistema solare in miniatura"
 ```
 
-### 2e. Knowledge Graph (esteso)
+### 2e. Question-Based Reasoner (NUOVO)
+Ragiona facendo domande, eliminando ipotesi, arrivando a una conclusione.
+
+**Come funziona:**
+1. Genera domande utili (che distinguono le ipotesi)
+2. Seleziona la migliore (**Information Gain** = entropia)
+3. Chiede la risposta (utente / LLM / sensori)
+4. Aggiorna ipotesi + probabilità
+5. Continua finché non ci sono più domande utili
+6. Restituisce conclusione + trace completo
+
+**Componenti:**
+```
+engine/question_based/
+ ├── hypothesis_space.py    # Gestione ipotesi + probabilità
+ ├── question_generator.py # Genera domande utili
+ ├── information_gain.py  # Seleziona (entropia)
+ ├── probability_updater.py # Aggiorna Bayes-like
+ ├── question_reasoner.py  # Ciclo completo
+ └── explainer.py          # Trace log
+```
+
+**Esempio "Indovina l'animale":**
+```
+Ipotesi: cane, gatto, volpe, coniglio
+Domanda: "È domestico?" → risposta: sì
+Ipotesi rimanenti: cane, gatto, coniglio
+
+Domanda: "Ha la coda lunga?" → risposta: sì
+Ipotesi rimanenti: gatto, coniglio
+
+Domanda: "Fa 'miao'?" → risposta: no
+Ipotesi rimanenti: cane
+
+Conclusione: cane (100%)
+```
+
+**Perché è rivoluzionario:**
+- Non indovina, indaga
+- Non allucina, esclude
+- Arriva a una sola conclusione
+- Spiega il percorso logico
+- Funziona come un detective umano
+
+### 2f. Knowledge Graph (esteso)
 Il grafo esistente + nuovi tipi di relazione:
 
 | Relazione | Esempio | Uso |
@@ -435,6 +479,7 @@ User: "il cane ha 4 zampe, il gatto ha 4 zampe, il cavallo ha 4 zampe"
 - [ ] Deductive Reasoner
 - [ ] Inductive Reasoner
 - [ ] Analogical Reasoner
+- [x] Question-Based Reasoner (✅ implementato!)
 - [ ] Pipeline Executor (orchestratore)
 - [ ] Estensione Knowledge Graph (nuovi tipi di relazione)
 - [ ] Estensione Rule Engine (regole logiche)
