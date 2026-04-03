@@ -257,15 +257,36 @@ Se non sei sicuro, metti confidenza bassa. Mai inventare numeri."""
         # Parsa risposta
         result = self._parse_solve_response(raw)
         if result:
+            answer_text = (
+                result.get("risposta")
+                or result.get("answer")
+                or result.get("output")
+                or result.get("spiegazione")
+                or result.get("explanation")
+                or ""
+            )
             response.facts = [
                 ExtractedFact(
                     subject=question,
                     relation="risposta",
-                    value=str(result.get("risposta", "")),
+                    value=str(answer_text),
                     confidence=result.get("confidenza", 0.5),
                 )
             ]
             response.confidence = result.get("confidenza", 0.5)
+        else:
+            # Fallback robusto: se non arriva JSON ma testo utile, usalo comunque.
+            raw_text = str(raw or "").strip()
+            if raw_text and not raw_text.lower().startswith("errore llm"):
+                response.facts = [
+                    ExtractedFact(
+                        subject=question,
+                        relation="risposta",
+                        value=raw_text,
+                        confidence=0.45,
+                    )
+                ]
+                response.confidence = 0.45
 
         self.history.append(
             {

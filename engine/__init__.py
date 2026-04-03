@@ -86,6 +86,24 @@ class ReasoningEngine:
             category="system",
             channel="system",
         )
+        self._seed_baseline_knowledge()
+
+    def _seed_baseline_knowledge(self):
+        """Semi base per domande fattuali frequenti (deterministiche)."""
+        seeds = {
+            "Francia": "Parigi",
+            "Italia": "Roma",
+            "Germania": "Berlino",
+            "Spagna": "Madrid",
+        }
+        for country, capital in seeds.items():
+            c = self.knowledge.add(
+                country,
+                description=f"{country} è uno Stato europeo.",
+                category="geografia",
+                channel="system",
+            )
+            c.add_relation("capitale", capital, channel="system")
 
     def learn(
         self,
@@ -318,6 +336,33 @@ class ReasoningEngine:
                     explanation=math_res.get("explanation", ""),
                     verified=True,
                 )
+
+        # 4b. Fast-Path: lookup fattuale (es. capitali) dal Knowledge Graph
+        if "capitale" in normalized:
+            for ent in parsed.entities:
+                concept = self.knowledge.get(ent.name)
+                if not concept:
+                    continue
+                rels = getattr(concept, "relations", {}) or {}
+                for rel_name, targets in rels.items():
+                    if "capitale" in rel_name.lower() and targets:
+                        target = targets[0][0] if isinstance(targets[0], tuple) else targets[0]
+                        return ReasoningResult(
+                            answer=f"La capitale della {concept.name} è {target}.",
+                            confidence=1.0,
+                            reasoning_type="lookup",
+                            steps=[
+                                ReasoningStep(
+                                    type="lookup",
+                                    description="Recupero diretto dal Knowledge Graph",
+                                    input=question,
+                                    output={"entity": concept.name, "relation": rel_name, "value": target},
+                                    channel="knowledge_graph",
+                                )
+                            ],
+                            explanation="Risposta fattuale recuperata dal grafo di conoscenza.",
+                            verified=True,
+                        )
 
         # 5. Fast-Path: Identity Handling (Sistema 1)
         if parsed.intent == "identity":
