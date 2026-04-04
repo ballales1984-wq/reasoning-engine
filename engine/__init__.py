@@ -737,6 +737,63 @@ class ReasoningEngine:
         if intent in {"search"}:
             return "open_world"
 
+        # Keyword per concetti scientifici, attualità → open_world
+        concept_keywords = [
+            "pressione",
+            "atmosferica",
+            "motore",
+            "scoppio",
+            "fotosintesi",
+            "elettromagnetismo",
+            "quantum",
+            "relativita",
+            "nucleare",
+            "chimica",
+            "fisica",
+            "biologia",
+            "premier",
+            "presidente",
+            "governo",
+            "elezioni",
+            "politico",
+            "piramide",
+            "impero",
+            "roman",
+            "medioevo",
+            "rinascimento",
+            "olimpico",
+            "mondiale",
+            "campionato",
+            "gara",
+            "premier italiano",
+            "presidente usa",
+            "leader mondiale",
+            "capo di stato",
+        ]
+        if any(k in text for k in concept_keywords):
+            return "open_world"
+
+        # Domande con "come funziona" → open_world
+        if "come funziona" in text or "come si" in text:
+            return "open_world"
+
+        # Domande "chi e/era" + nome non noto → open_world
+        if (
+            "chi e" in text
+            or "chi era" in text
+            or "chi ha" in text
+            or "chi sono" in text
+        ):
+            return "open_world"
+
+        # Quando + evento storico → open_world
+        if (
+            "quando e caduto" in text
+            or "quando e finito" in text
+            or "quando e iniziato" in text
+        ):
+            return "open_world"
+
         # Entity non nel KG → open_world per imparare
         # Ma ignora riferimenti vaghi al contesto (es. "chi era?", "e chi?")
         entities = parsed.entities
