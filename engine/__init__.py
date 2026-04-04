@@ -726,6 +726,14 @@ class ReasoningEngine:
         if intent in {"search"}:
             return "open_world"
 
+        # Entity non nel KG → open_world per imparare
+        entities = parsed.entities
+        if entities:
+            entity_names = [e.name if hasattr(e, "name") else str(e) for e in entities]
+            kg_result = self.knowledge.find(entity_names)
+            if kg_result and not any(v is not None for v in kg_result.values()):
+                return "open_world"
+
         if any(
             k in text
             for k in ["news", "ultime notizie", "quotazione", "meteo", "oggi in"]
