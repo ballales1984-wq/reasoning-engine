@@ -1,3 +1,11 @@
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+
+
 def test_master_reasoner_end_to_end():
     """
     MASTER TEST — verifica completa del Question-Based Reasoner.
@@ -65,4 +73,3 @@ def test_master_reasoner_end_to_end():
 
     assert len(result["trace"]) > 0, "Audit trail mancante"
     assert result["final_hypothesis"] is not None, "Il Reasoner non converge"
-

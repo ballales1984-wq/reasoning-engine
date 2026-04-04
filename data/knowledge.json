@@ -10,7 +10,7 @@
           "22/7 (approssimazione)"
         ],
         "category": "math/constants",
-        "last_updated": 1775256451.4686148,
+        "last_updated": 1775283066.017482,
         "trust_score": 1.0
       }
     },
@@ -30,7 +30,7 @@
           "13"
         ],
         "category": "math/numbers",
-        "last_updated": 1775256451.4686303,
+        "last_updated": 1775283066.0174859,
         "trust_score": 1.0
       }
     },
@@ -47,7 +47,7 @@
           "1/3 = 0.333..."
         ],
         "category": "math/fractions",
-        "last_updated": 1775256451.4686384,
+        "last_updated": 1775283066.0174885,
         "trust_score": 1.0
       }
     },
@@ -64,7 +64,7 @@
           "100% = tutto"
         ],
         "category": "math/percentages",
-        "last_updated": 1775256451.4686441,
+        "last_updated": 1775283066.0174906,
         "trust_score": 1.0
       }
     },
@@ -81,7 +81,7 @@
           "10² = 100"
         ],
         "category": "math/powers",
-        "last_updated": 1775256451.4686491,
+        "last_updated": 1775283066.017493,
         "trust_score": 1.0
       }
     },
@@ -98,7 +98,7 @@
           "√16 = 4"
         ],
         "category": "math/roots",
-        "last_updated": 1775256451.468654,
+        "last_updated": 1775283066.0174954,
         "trust_score": 1.0
       }
     },
@@ -115,7 +115,7 @@
           "5! = 120"
         ],
         "category": "math/factorial",
-        "last_updated": 1775256451.4686582,
+        "last_updated": 1775283066.0174973,
         "trust_score": 1.0
       }
     },
@@ -131,7 +131,7 @@
           "2x = 10 → x = 5"
         ],
         "category": "math/equations",
-        "last_updated": 1775256451.4686637,
+        "last_updated": 1775283066.0174994,
         "trust_score": 1.0
       }
     },
@@ -144,7 +144,7 @@
         "description": "Sono ReasoningEngine v2.0, un AI che ragiona come un umano. Combino NLP, ragionamento deduttivo/induttivo/analogico, matematica avanzata, ricerca web e esecuzione codice.",
         "examples": [],
         "category": "system",
-        "last_updated": 1775256451.4719942,
+        "last_updated": 1775283066.0184293,
         "trust_score": 1.0
       }
     },
@@ -185,7 +185,7 @@
           "1000€ al 5% per 2 anni = 100€ di interesse"
         ],
         "category": "finance/interest",
-        "last_updated": 1775256451.4721766,
+        "last_updated": 1775281953.8582225,
         "trust_score": 1.0
       }
     },
@@ -200,7 +200,7 @@
           "1000€ al 5% per 2 anni = 102.5€ (non 100€)"
         ],
         "category": "finance/interest",
-        "last_updated": 1775256451.4721851,
+        "last_updated": 1775281953.8582268,
         "trust_score": 1.0
       }
     },
@@ -215,7 +215,7 @@
           "Investi 1000€, guadagni 1200€ → ROI = 20%"
         ],
         "category": "finance/metrics",
-        "last_updated": 1775256451.4721904,
+        "last_updated": 1775281953.8582294,
         "trust_score": 1.0
       }
     },
@@ -230,7 +230,7 @@
           "Non mettere tutte le uova nello stesso paniere"
         ],
         "category": "finance/strategy",
-        "last_updated": 1775256451.4721947,
+        "last_updated": 1775281953.8582315,
         "trust_score": 1.0
       }
     },
@@ -245,7 +245,7 @@
           "Se l'inflazione è 3%, 100€ oggi valgono 97€ tra un anno"
         ],
         "category": "finance/concepts",
-        "last_updated": 1775256451.472199,
+        "last_updated": 1775281953.8582342,
         "trust_score": 1.0
       }
     },
@@ -260,7 +260,7 @@
           "Contanti = alta liquidità, immobili = bassa liquidità"
         ],
         "category": "finance/concepts",
-        "last_updated": 1775256451.4723654,
+        "last_updated": 1775281953.8582358,
         "trust_score": 1.0
       }
     },
@@ -275,7 +275,7 @@
           "Se investi in azioni, il costo opportunità è il rendimento obbligazionario perso"
         ],
         "category": "finance/concepts",
-        "last_updated": 1775256451.4723737,
+        "last_updated": 1775281953.8582377,
         "trust_score": 1.0
       }
     },
@@ -290,7 +290,7 @@
           "Investi 1000€, valgono 1100€ → rendimento 10%"
         ],
         "category": "finance/metrics",
-        "last_updated": 1775256451.4723783,
+        "last_updated": 1775281953.8582394,
         "trust_score": 1.0
       }
     },
@@ -305,7 +305,7 @@
           "Azioni = alto rischio, obbligazioni statali = basso rischio"
         ],
         "category": "finance/concepts",
-        "last_updated": 1775256451.4723825,
+        "last_updated": 1775281953.8582413,
         "trust_score": 1.0
       }
     },
@@ -320,7 +320,7 @@
           "BOT, BTP, corporate bond"
         ],
         "category": "finance/instruments",
-        "last_updated": 1775256451.4723864,
+        "last_updated": 1775281953.8582432,
         "trust_score": 1.0
       }
     },
@@ -335,7 +335,7 @@
           "Azione Apple, azione Enel"
         ],
         "category": "finance/instruments",
-        "last_updated": 1775256451.4724176,
+        "last_updated": 1775281953.8582454,
         "trust_score": 1.0
       }
     },
@@ -350,7 +350,7 @@
           "Fondo azionario, fondo bilanciato, ETF"
         ],
         "category": "finance/instruments",
-        "last_updated": 1775256451.472422,
+        "last_updated": 1775281953.8582475,
         "trust_score": 1.0
       }
     },
@@ -365,7 +365,7 @@
           "ETF S&P500, ETF MSCI World"
         ],
         "category": "finance/instruments",
-        "last_updated": 1775256451.472426,
+        "last_updated": 1775281953.8582492,
         "trust_score": 1.0
       }
     },
@@ -462,7 +462,7 @@
           "esempio2"
         ],
         "category": "general",
-        "last_updated": 1775239361.3393297,
+        "last_updated": 1775283065.9929237,
         "trust_score": 1.0
       }
     },
@@ -475,7 +475,7 @@
         "description": "Francia è uno Stato europeo.",
         "examples": [],
         "category": "geografia",
-        "last_updated": 1775256451.472012,
+        "last_updated": 1775283066.0184355,
         "trust_score": 1.0
       }
     },
@@ -495,7 +495,7 @@
         "description": "Italia è uno Stato europeo.",
         "examples": [],
         "category": "geografia",
-        "last_updated": 1775256451.4720404,
+        "last_updated": 1775283066.0184455,
         "trust_score": 1.0
       }
     },
@@ -515,7 +515,7 @@
         "description": "Germania è uno Stato europeo.",
         "examples": [],
         "category": "geografia",
-        "last_updated": 1775256451.472053,
+        "last_updated": 1775283066.01845,
         "trust_score": 1.0
       }
     },
@@ -535,7 +535,7 @@
         "description": "Spagna è uno Stato europeo.",
         "examples": [],
         "category": "geografia",
-        "last_updated": 1775256451.4720607,
+        "last_updated": 1775283066.0184536,
         "trust_score": 1.0
       }
     },
@@ -555,7 +555,7 @@
         "description": "animale",
         "examples": [],
         "category": "biologia",
-        "last_updated": 1775256451.6502385,
+        "last_updated": 1775281955.3955183,
         "trust_score": 1.0
       }
     },
@@ -575,7 +575,7 @@
         "description": "essere vivente",
         "examples": [],
         "category": "biologia",
-        "last_updated": 1775256451.6733854,
+        "last_updated": 1775281955.6657434,
         "trust_score": 1.0
       }
     },
@@ -588,7 +588,7 @@
         "description": "mammifero",
         "examples": [],
         "category": "biologia",
-        "last_updated": 1775256451.9360428,
+        "last_updated": 1775281956.2371473,
         "trust_score": 1.0
       }
     },
@@ -608,7 +608,7 @@
         "description": "stella",
         "examples": [],
         "category": "astronomia",
-        "last_updated": 1775256452.0806298,
+        "last_updated": 1775281956.5139596,
         "trust_score": 1.0
       }
     },
@@ -621,7 +621,7 @@
         "description": "centro atomo",
         "examples": [],
         "category": "fisica",
-        "last_updated": 1775256452.283227,
+        "last_updated": 1775281957.1660335,
         "trust_score": 1.0
       }
     },
@@ -634,7 +634,7 @@
         "description": "sole con pianeti",
         "examples": [],
         "category": "astronomia",
-        "last_updated": 1775256452.6174314,
+        "last_updated": 1775281957.262967,
         "trust_score": 1.0
       }
     },
@@ -647,7 +647,7 @@
         "description": "nucleo con elettroni",
         "examples": [],
         "category": "fisica",
-        "last_updated": 1775256452.694909,
+        "last_updated": 1775281957.3820374,
         "trust_score": 1.0
       }
     },
