@@ -74,9 +74,10 @@ class LLMClient:
         if explicit_provider:
             return explicit_provider
         if not api_key:
-            return "openai"
+            return "ollama"  # Default a Ollama locale
         if str(api_key).startswith("gsk_"):
             return "groq"
+        return "ollama"  # Usa Ollama se non c'e chiave API
         return "openai"
 
     def _get_client(self):

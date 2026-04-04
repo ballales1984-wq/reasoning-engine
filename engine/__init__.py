@@ -82,8 +82,9 @@ class ReasoningEngine:
         )
         resolved_model = llm_model
         if llm_model == "gpt-4o-mini" and resolved_provider == "groq":
-            # Modello Groq veloce e stabile come default.
             resolved_model = "llama-3.1-8b-instant"
+        elif llm_model == "gpt-4o-mini" and resolved_provider == "ollama":
+            resolved_model = "gemma3:1b"  # Usa Gemma locale
 
         llm_client = LLMClient(
             provider=resolved_provider,
