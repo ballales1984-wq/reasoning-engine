@@ -18,15 +18,14 @@ class AnalystAgent(BaseAgent):
         """Analizza i dati raccolti dal Researcher."""
         accumulated_data = input_data.get("accumulated_data", [])
         query = str(input_data.get("query", "") or "")
+        constraints = input_data.get("researcher_constraints", {})
         steps = []
 
-        # 1. Filtriamo per trovare l'informazione migliore
-        # Per ora prendiamo l'informazione più completa tra quelle disponibili
         text_chunks = []
         direct_answer = None
+
         for item in accumulated_data:
             if item["source"] == "knowledge_graph":
-                # Convertiamo il dizionario Concepts in testo leggibile
                 for concept_name, concept in item["content"].items():
                     if concept:
                         best_info = concept.get_best_info()
@@ -35,7 +34,6 @@ class AnalystAgent(BaseAgent):
                                 f"{concept_name}: {best_info['description']}."
                             )
 
-                        # Valorizza anche le relazioni del KG (capitale, ecc.).
                         rels = getattr(concept, "relations", {}) or {}
                         for rel_name, targets in rels.items():
                             for target in targets:
@@ -66,17 +64,13 @@ class AnalystAgent(BaseAgent):
                 if web_content:
                     text_chunks.append(web_content)
             elif item["source"] == "web_search":
-                # Usa risultati web solo se non hai dati dal KG o memoria
                 if not text_chunks:
-                    # Estrai risultati dalla ricerca web - prendi SOLO il primo
                     results = item["content"].get("results", [])
                     if results and results[0].get("content"):
-                        # Prendi solo il primo risultato
                         text_chunks.append(results[0]["content"][:300])
 
         all_text = " ".join(text_chunks).strip()
 
-        # 2. Ragionamento Simbolico (Fase 1: Deduzione)
         logical_deductions = []
         entities = input_data.get("entities", [])
         for entity in entities:
@@ -89,7 +83,6 @@ class AnalystAgent(BaseAgent):
                     )
                 )
 
-        # 3. Ragionamento Simbolico (Fase 2: Analogia - Fallback se dati scarsi)
         analogies_found = []
         if not all_text or len(all_text) < 100:
             for entity in entities:
@@ -103,7 +96,36 @@ class AnalystAgent(BaseAgent):
                         )
                     )
 
-        # 4. Sintetizziamo la risposta finale arricchita
+        if constraints.get("expand_with") == "evidence_details" and accumulated_data:
+            if all_text:
+                all_text += " "
+            for item in accumulated_data:
+                if item["source"] == "knowledge_graph":
+                    for concept_name, concept in item["content"].items():
+                        best = (
+                            concept.get_best_info()
+                            if hasattr(concept, "get_best_info")
+                            else {}
+                        )
+                        for ex in best.get("examples", []):
+                            all_text += f" {ex}"
+                        rels = getattr(concept, "relations", {}) or {}
+                        for rel_name, targets in rels.items():
+                            for t in targets:
+                                tval = t[0] if isinstance(t, tuple) else t
+                                all_text += f" {concept_name} {rel_name} {tval}."
+                elif item["source"] == "web_search":
+                    for r in item.get("content", {}).get("results", [])[1:3]:
+                        snip = (
+                            r.get("content", "")[:200]
+                            if isinstance(r, dict)
+                            else str(r)
+                        )
+                        if snip:
+                            all_text += f" {snip}"
+
+        confidence = 0.0
+
         if direct_answer:
             draft = direct_answer
             confidence = 0.95

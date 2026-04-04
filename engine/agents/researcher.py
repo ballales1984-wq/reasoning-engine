@@ -19,57 +19,93 @@ class ResearcherAgent(BaseAgent):
     def process(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
         """Esegue la ricerca su tutti i canali."""
         query = input_data.get("query", "")
+        route_mode = input_data.get("route_mode", "reasoning_required")
+        allow_web_fallback = route_mode == "open_world"
+        constraints = input_data.get("researcher_constraints", {})
         results = []
         steps = []
 
-        # 1. Ricerca nel Grafo (Structured)
-        raw_known = self.engine.knowledge.find(input_data.get("entities", []))
-        # Evita falsi positivi: mantieni solo concetti realmente trovati.
-        known = {k: v for k, v in raw_known.items() if v is not None}
-        if known:
-            results.append({"source": "knowledge_graph", "content": known})
-            steps.append(
-                self.create_step(
-                    f"Trovate info nel Knowledge Graph: {list(known.keys())}", known
-                )
-            )
+        suggested_sources = constraints.get("suggested_sources", [])
+        use_sources = constraints.get("use_sources", [])
+        expand_with = constraints.get("expand_with", None)
+        focus_on = constraints.get("focus_on", None)
 
-        # 2. Ricerca Vettoriale (RAG)
-        memory_res = self.engine.memory.search_semantic(query)
-        if memory_res["success"] and memory_res["matches"]:
-            results.append(
-                {"source": "vector_memory", "content": memory_res["matches"]}
-            )
-            steps.append(
-                self.create_step(
-                    f"Recuperate info semantiche: {len(memory_res['matches'])} risultati",
-                    memory_res["matches"],
-                    type="semantic_memory",
-                )
-            )
+        search_query = focus_on or query
+        search_entities = input_data.get("entities", [])
 
-        # 3. Ricerca Deep Browsing (se URL presente)
-        if "urls" in input_data and input_data["urls"]:
-            # Per semplicità cerchiamo sul primo URL
-            browse_res = self.engine.browser.browse_url(input_data["urls"][0])
-            if browse_res["success"]:
-                results.append({"source": "web_browsing", "content": browse_res})
-                steps.append(
-                    self.create_step(
-                        f"Estratto contenuto da URL: {browse_res['url']}", browse_res
+        if suggested_sources:
+            priority_order = suggested_sources
+        elif use_sources:
+            priority_order = use_sources
+        else:
+            priority_order = ["knowledge_graph", "vector_memory", "web_search"]
+
+        for source in priority_order:
+            if source == "knowledge_graph":
+                raw_known = self.engine.knowledge.find(search_entities)
+                known = {k: v for k, v in raw_known.items() if v is not None}
+                if known:
+                    results.append({"source": "knowledge_graph", "content": known})
+                    steps.append(
+                        self.create_step(
+                            f"Trovate info nel Knowledge Graph: {list(known.keys())}",
+                            known,
+                        )
                     )
-                )
 
-        # 4. Fallback: Ricerca web SOLO se nessun risultato trovato (KG, memoria, browsing)
-        if not results:
-            web_res = self.web_tool.search(query, max_results=3)
-            if web_res.get("results"):
-                results.append({"source": "web_search", "content": web_res})
-                steps.append(
-                    self.create_step(
-                        f"Ricerca web: {len(web_res['results'])} risultati", web_res
+            elif source == "vector_memory":
+                memory_res = self.engine.memory.search_semantic(search_query)
+                if memory_res["success"] and memory_res["matches"]:
+                    results.append(
+                        {"source": "vector_memory", "content": memory_res["matches"]}
                     )
-                )
+                    steps.append(
+                        self.create_step(
+                            f"Recuperate info semantiche: {len(memory_res['matches'])} risultati",
+                            memory_res["matches"],
+                            type="semantic_memory",
+                        )
+                    )
+
+            elif source == "web_search":
+                if "urls" in input_data and input_data["urls"]:
+                    browse_res = self.engine.browser.browse_url(input_data["urls"][0])
+                    if browse_res["success"]:
+                        results.append(
+                            {"source": "web_browsing", "content": browse_res}
+                        )
+                        steps.append(
+                            self.create_step(
+                                f"Estratto contenuto da URL: {browse_res['url']}",
+                                browse_res,
+                            )
+                        )
+                if not results and allow_web_fallback:
+                    web_res = self.web_tool.search(search_query, max_results=3)
+                    if web_res.get("results"):
+                        results.append({"source": "web_search", "content": web_res})
+                        steps.append(
+                            self.create_step(
+                                f"Ricerca web: {len(web_res['results'])} risultati",
+                                web_res,
+                            )
+                        )
+
+        if (
+            constraints.get("reason") == "too_short"
+            and expand_with == "evidence_details"
+        ):
+            if not results:
+                if allow_web_fallback:
+                    web_res = self.web_tool.search(search_query, max_results=5)
+                    if web_res.get("results"):
+                        results.append({"source": "web_search", "content": web_res})
+                        steps.append(
+                            self.create_step(
+                                f"Expand con ricerca web aggiuntiva: {len(web_res['results'])}",
+                                web_res,
+                            )
+                        )
 
         return {
             "accumulated_data": results,

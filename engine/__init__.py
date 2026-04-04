@@ -26,14 +26,28 @@ from .tools.data_analyzer import DataAnalysisTool
 from .tools.memory_tool import MemoryTool
 from .tools.browsing_tool import BrowsingTool
 from .tools.web import WebTool
+from .tools.datetime import DateTimeTool
 from .agents.manager import AgentManager
 from .llm.bridge import LLMBridge, LLMClient
+
+try:
+    from .question_based.question_reasoner import QuestionReasoner, ReasoningStatus
+
+    QUESTION_BASED_AVAILABLE = True
+except ImportError:
+    QUESTION_BASED_AVAILABLE = False
+    QuestionReasoner = None
+    ReasoningStatus = None
 
 
 class ReasoningEngine:
     """
     Il cervello principale. Coordina tutti i componenti e il team di agenti Multi-Agent.
     """
+
+    WEB_FALLBACK_MIN_PERTINENCE = 0.30
+    LLM_FALLBACK_MIN_CONFIDENCE = 0.50
+    MAX_WEB_FALLBACKS = 2
 
     def __init__(
         self,
@@ -53,6 +67,7 @@ class ReasoningEngine:
         self.memory = MemoryTool(self)  # Long-term semantic memory
         self.browser = BrowsingTool(self)  # Deep web browsing
         self.web = WebTool()  # Web search fallback
+        self.datetime = DateTimeTool()  # Date/ora locale
         self.agents = AgentManager(self)  # Multi-Agent Team
         self.deductive = DeductiveReasoner(self.knowledge, self.rules)
         self.inductive = InductiveReasoner(self.knowledge, self.rules)
@@ -77,6 +92,16 @@ class ReasoningEngine:
         )
         self.llm = LLMBridge(llm_client, self.knowledge, self.verifier)
 
+        # Question-Based Reasoner per query ambigue
+        if QUESTION_BASED_AVAILABLE:
+            self.question_reasoner = QuestionReasoner(
+                domain="general",
+                confidence_threshold=0.90,
+                ambiguity_threshold=0.20,
+            )
+        else:
+            self.question_reasoner = None
+
         # Contesto conversazione
         self.conversation_history = []
 
@@ -98,6 +123,7 @@ class ReasoningEngine:
             "Italia": "Roma",
             "Germania": "Berlino",
             "Spagna": "Madrid",
+            "Giappone": "Tokyo",
         }
         for country, capital in seeds.items():
             c = self.knowledge.add(
@@ -174,6 +200,8 @@ class ReasoningEngine:
         # 1. NLP Parsing Iniziale (per intent e canali veloci)
         parsed_dict = self._parse_question(question)
         parsed = parsed_dict["_parsed"]
+        route_mode = self._classify_route_mode(question, parsed)
+        parsed_dict["route_mode"] = route_mode
 
         # 2. Fast-Path: Saluti brevi (evita risposte "sporche" dal KG)
         normalized = re.sub(r"[^\w\s]", "", question.lower()).strip()
@@ -340,8 +368,72 @@ class ReasoningEngine:
                     verified=True,
                 )
 
+        # 4b. Fast-Path: data/ora (evita ricerca web per domande temporali semplici)
+        if self._is_datetime_question(normalized):
+            now_data = self.datetime.now()
+            if re.search(
+                r"\b(che\s+giorno|giorno\s+e|giorno\s+è|what\s+day)\b", normalized
+            ):
+                answer = f"Oggi è {now_data['day_it']}."
+            elif re.search(
+                r"\b(che\s+data|data\s+di\s+oggi|today'?s\s+date)\b", normalized
+            ):
+                answer = f"Oggi è {self.datetime.today()}."
+            elif re.search(r"\b(che\s+ora|ora\s+attuale|what\s+time)\b", normalized):
+                answer = f"Sono le {self.datetime.time()}."
+            else:
+                answer = f"Oggi è {self.datetime.today()}."
+            return ReasoningResult(
+                answer=answer,
+                confidence=1.0,
+                reasoning_type="datetime",
+                steps=[
+                    ReasoningStep(
+                        type="datetime",
+                        description="Risposta diretta tramite DateTimeTool",
+                        input=question,
+                        output=now_data,
+                        channel="datetime_tool",
+                    )
+                ],
+                explanation="Risposta temporale locale senza ricerca web.",
+                verified=True,
+            )
+
         # 4b. Fast-Path: lookup fattuale (es. capitali) dal Knowledge Graph
         if "capitale" in normalized:
+            country_name = self._extract_country_name_for_capital(question)
+            if country_name:
+                concept = self.knowledge.get(country_name)
+                if concept:
+                    rels = getattr(concept, "relations", {}) or {}
+                    for rel_name, targets in rels.items():
+                        if "capitale" in rel_name.lower() and targets:
+                            target = (
+                                targets[0][0]
+                                if isinstance(targets[0], tuple)
+                                else targets[0]
+                            )
+                            return ReasoningResult(
+                                answer=f"La capitale del {concept.name} è {target}.",
+                                confidence=1.0,
+                                reasoning_type="lookup",
+                                steps=[
+                                    ReasoningStep(
+                                        type="lookup",
+                                        description="Recupero diretto dal Knowledge Graph",
+                                        input=question,
+                                        output={
+                                            "entity": concept.name,
+                                            "relation": rel_name,
+                                            "value": target,
+                                        },
+                                        channel="knowledge_graph",
+                                    )
+                                ],
+                                explanation="Risposta fattuale recuperata dal grafo di conoscenza.",
+                                verified=True,
+                            )
             for ent in parsed.entities:
                 concept = self.knowledge.get(ent.name)
                 if not concept:
@@ -349,7 +441,11 @@ class ReasoningEngine:
                 rels = getattr(concept, "relations", {}) or {}
                 for rel_name, targets in rels.items():
                     if "capitale" in rel_name.lower() and targets:
-                        target = targets[0][0] if isinstance(targets[0], tuple) else targets[0]
+                        target = (
+                            targets[0][0]
+                            if isinstance(targets[0], tuple)
+                            else targets[0]
+                        )
                         return ReasoningResult(
                             answer=f"La capitale della {concept.name} è {target}.",
                             confidence=1.0,
@@ -359,7 +455,11 @@ class ReasoningEngine:
                                     type="lookup",
                                     description="Recupero diretto dal Knowledge Graph",
                                     input=question,
-                                    output={"entity": concept.name, "relation": rel_name, "value": target},
+                                    output={
+                                        "entity": concept.name,
+                                        "relation": rel_name,
+                                        "value": target,
+                                    },
                                     channel="knowledge_graph",
                                 )
                             ],
@@ -432,36 +532,61 @@ class ReasoningEngine:
             or any(p in answer_text for p in weak_patterns)
         )
 
-        # 10a. Web fallback per domande fattuali quando il KG non basta.
-        if weak_answer:
+        # 10a. Web fallback rigoroso: solo per open_world con pertinenza minima
+        pertinence = agent_res.get("pertinence_score", 0.0)
+        grounding = agent_res.get("grounding_score", 0.0)
+        can_fallback_web = (
+            weak_answer
+            and route_mode == "open_world"
+            and pertinence < self.WEB_FALLBACK_MIN_PERTINENCE
+        )
+
+        if can_fallback_web:
             web_res = self.web.search_and_summarize(question)
             summary = self._clean_web_summary(str(web_res.get("summary", "") or ""))
-            if web_res.get("success") and summary and summary != "Nessun risultato trovato.":
+            if (
+                web_res.get("success")
+                and summary
+                and summary != "Nessun risultato trovato."
+            ):
+                web_confidence = min(0.72, max(grounding + 0.3, 0.5))
                 return ReasoningResult(
                     answer=summary,
-                    confidence=0.72,
+                    confidence=web_confidence,
                     reasoning_type="web",
                     steps=agent_steps
                     + [
                         ReasoningStep(
                             type="web",
-                            description="Risposta via ricerca web (fallback)",
+                            description=f"Risposta via ricerca web (fallback: pertinenza={pertinence:.2f}<{self.WEB_FALLBACK_MIN_PERTINENCE})",
                             channel="web_search",
-                            output={"sources": web_res.get("sources", []), "query": question},
+                            output={
+                                "sources": web_res.get("sources", []),
+                                "query": question,
+                                "fallback_reason": f"low_pertinence_{pertinence:.2f}",
+                            },
                         )
                     ],
-                    explanation="Risposta ottenuta da ricerca web perché il Knowledge Graph non aveva dati sufficienti.",
+                    explanation=f"Fallback web perché pertinenza insufficiente ({pertinence:.2f} < {self.WEB_FALLBACK_MIN_PERTINENCE}).",
                     verified=False,
                     sources=[SourceMetadata(channel="web", trust_score=0.5)],
                 )
 
-        if weak_answer and use_llm and self.llm.is_available():
+        # 10b. LLM fallback rigoroso: solo con confidenza agente bassa e dopo web fallito
+        agent_conf = agent_res.get("confidence", 0.0)
+        can_fallback_llm = (
+            weak_answer
+            and use_llm
+            and self.llm.is_available()
+            and agent_conf < self.LLM_FALLBACK_MIN_CONFIDENCE
+        )
+
+        if can_fallback_llm:
             llm_res = self.llm.fallback_solve(question)
             if llm_res.facts:
                 best = max(llm_res.facts, key=lambda f: f.confidence)
                 llm_answer = str(getattr(best, "value", "") or "").strip()
 
-                # Evita risposte vuote dal fallback LLM (caso JSON senza campo "risposta").
                 if not llm_answer:
                     raw = str(getattr(llm_res, "raw", "") or "").strip()
                     if raw and not raw.lower().startswith("errore llm"):
@@ -472,24 +597,38 @@ class ReasoningEngine:
                         "Capito. Dimmi pure cosa vuoi fare e ti aiuto passo passo."
                     )
 
+                llm_confidence = min(best.confidence, 0.65)
                 return ReasoningResult(
                     answer=llm_answer,
-                    confidence=best.confidence,
+                    confidence=llm_confidence,
                     reasoning_type="llm",
                     steps=agent_steps
                     + [
                         ReasoningStep(
                             type="llm",
-                            description="Risposta via Canale LLM Bridge",
+                            description=f"Fallback LLM (confidenza agente: {agent_conf:.2f} < {self.LLM_FALLBACK_MIN_CONFIDENCE})",
                             channel=self.llm.llm.provider,
+                            output={
+                                "fallback_reason": f"low_confidence_{agent_conf:.2f}"
+                            },
                         )
                     ],
-                    explanation=f"Ottenuto tramite LLM Bridge (Canale: {self.llm.llm.provider})",
+                    explanation=f"Fallback LLM perché confidenza insufficiente ({agent_conf:.2f} < {self.LLM_FALLBACK_MIN_CONFIDENCE}).",
                     llm_used=True,
                     sources=[
                         SourceMetadata(channel=self.llm.llm.provider, trust_score=0.4)
                     ],
                 )
+
+        # 10c. Question-Based Reasoner per query ambigue/diagnostiche
+        if (
+            weak_answer
+            and self.question_reasoner is not None
+            and route_mode in ("reasoning_required", "deterministic_fact")
+        ):
+            qb_result = self._question_based_reason(question)
+            if qb_result:
+                return qb_result
 
         if agent_res.get("answer") is None:
             return ReasoningResult(
@@ -565,6 +704,46 @@ class ReasoningEngine:
 
         return False
 
+    def _classify_route_mode(self, raw: str, parsed) -> str:
+        """
+        Classifica la query per policy di routing.
+        - deterministic_fact: dovrebbe rispondere da KG/tool locale, no web by default
+        - date_time: data/ora locali
+        - open_world: richiede ricerca esterna
+        - reasoning_required: inferenza/logica da conoscenza interna
+        """
+        text = (raw or "").lower().strip()
+        if not text:
+            return "reasoning_required"
+
+        if self._is_datetime_question(text):
+            return "date_time"
+
+        if "capitale" in text:
+            return "deterministic_fact"
+
+        intent = getattr(parsed, "intent", "general")
+        if intent in {"search"}:
+            return "open_world"
+
+        if any(
+            k in text
+            for k in ["news", "ultime notizie", "quotazione", "meteo", "oggi in"]
+        ):
+            return "open_world"
+
+        if intent in {
+            "calculate",
+            "verify",
+            "compare",
+            "explain",
+            "define",
+            "identity",
+        }:
+            return "reasoning_required"
+
+        return "reasoning_required"
+
     def what_do_you_know(self) -> dict:
         """Mostra tutto ciò che l'engine ha imparato."""
         return {
@@ -573,6 +752,43 @@ class ReasoningEngine:
             "conversation_turns": len(self.conversation_history),
         }
 
+    def _is_datetime_question(self, normalized: str) -> bool:
+        """Riconosce domande semplici su data/giorno/ora."""
+        if not normalized:
+            return False
+        patterns = [
+            r"\bche\s+giorno\b",
+            r"\bgiorno\s+e\b",
+            r"\bgiorno\s+è\b",
+            r"\bche\s+data\b",
+            r"\bdata\s+di\s+oggi\b",
+            r"\boggi\b",
+            r"\bche\s+ora\b",
+            r"\bora\s+attuale\b",
+            r"\btoday\b",
+            r"\bwhat\s+day\b",
+            r"\bwhat\s+time\b",
+            r"\btoday'?s\s+date\b",
+        ]
+        return any(re.search(p, normalized) for p in patterns)
+
+    def _extract_country_name_for_capital(self, raw: str) -> str | None:
+        """Estrae il paese da pattern comuni: 'capitale del/della X'."""
+        if not raw:
+            return None
+        text = raw.strip()
+        m = re.search(
+            r"\bcapitale\s+d(?:el|ella|ei|egli|elle)\s+([A-Za-zÀ-ÖØ-öø-ÿ' ]+)",
+            text,
+            re.IGNORECASE,
+        )
+        if not m:
+            return None
+        country = m.group(1).strip(" ?!.;,:'\"")
+        if not country:
+            return None
+        return country[:1].upper() + country[1:].lower()
+
     def _clean_web_summary(self, text: str) -> str:
         """Pulisce snippet web (entity HTML, tag residui, spazi)."""
         if not text:
@@ -580,5 +796,27 @@ class ReasoningEngine:
         cleaned = html_lib.unescape(text)
         cleaned = re.sub(r"<[^>]+>", " ", cleaned)
         cleaned = re.sub(r"\s+", " ", cleaned).strip()
-        # Mantieni risposta breve e leggibile in chat.
         return cleaned[:600]
+
+    def _question_based_reason(self, question: str) -> ReasoningResult | None:
+        """Usa QuestionReasoner per query ambigue/diagnostiche."""
+        if not self.question_reasoner:
+            return None
+
+        if self.question_reasoner.space.active:
+            top = self.question_reasoner.space.get_top_hypothesis()
+            if top:
+                answer = (
+                    f"Basandomi sul ragionamento probabilistico: {top.name} "
+                    f"(confidenza: {top.probability:.0%})"
+                )
+                return ReasoningResult(
+                    answer=answer,
+                    confidence=top.probability,
+                    reasoning_type="question_based",
+                    steps=[],
+                    explanation="Risposta da Question-Based Reasoner.",
+                    verified=False,
+                )
+
+        return None
