@@ -41,7 +41,7 @@ class ExtractedFact:
 class LLMClient:
     """
     Client astratto per qualsiasi provider LLM.
-    Supporta OpenAI, Anthropic, o qualsiasi API compatibile.
+    Supporta OpenAI, Anthropic, Ollama (Gemma), o qualsiasi API compatibile.
     """
 
     def __init__(
@@ -67,7 +67,9 @@ class LLMClient:
         return urls.get(self.provider, "https://api.openai.com/v1")
 
     @staticmethod
-    def detect_provider(api_key: str | None, explicit_provider: str | None = None) -> str:
+    def detect_provider(
+        api_key: str | None, explicit_provider: str | None = None
+    ) -> str:
         """Rileva automaticamente il provider in base alla chiave."""
         if explicit_provider:
             return explicit_provider

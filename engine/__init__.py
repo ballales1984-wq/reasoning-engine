@@ -104,6 +104,7 @@ class ReasoningEngine:
 
         # Contesto conversazione
         self.conversation_history = []
+        self._last_topic = None  # Ultimo argomento discusso
 
         # Auto-identità
         self.knowledge.add(
@@ -495,6 +496,16 @@ class ReasoningEngine:
         verified = agent_res.get("status") == "approved"
         agent_steps = agent_res.get("steps", [])
 
+        # Salva topic per riferimento futuro
+        if verified and parsed_dict.get("entities"):
+            ents = parsed_dict["entities"]
+            if ents:
+                self._last_topic = (
+                    ents[0]
+                    if isinstance(ents[0], str)
+                    else getattr(ents[0], "name", None)
+                )
+
         # 8. Salva nel contesto conversazione
         self.conversation_history.append(
             {
@@ -727,12 +738,29 @@ class ReasoningEngine:
             return "open_world"
 
         # Entity non nel KG → open_world per imparare
+        # Ma ignora riferimenti vaghi al contesto (es. "chi era?", "e chi?")
         entities = parsed.entities
         if entities:
             entity_names = [e.name if hasattr(e, "name") else str(e) for e in entities]
-            kg_result = self.knowledge.find(entity_names)
-            if kg_result and not any(v is not None for v in kg_result.values()):
-                return "open_world"
+            # Filtra entity troppo corte o comuni
+            entity_names = [
+                e
+                for e in entity_names
+                if len(e) > 2
+                and e.lower() not in {"chi", "era", "cosa", "quale", "quali"}
+            ]
+            if entity_names:
+                kg_result = self.knowledge.find(entity_names)
+                if kg_result and not any(v is not None for v in kg_result.values()):
+                    return "open_world"
+
+        # Riferimento al topic precedente? ("si ma chi era?", "e lui?")
+        if self._last_topic and any(
+            word in text for word in ["si", "ma", "lui", "lei", "era", "ecco", "quindi"]
+        ):
+            kg_result = self.knowledge.find([self._last_topic])
+            if kg_result and any(v is not None for v in kg_result.values()):
+                return "deterministic_fact"  # Rispondi dal KG sul topic noto
 
         if any(
             k in text
