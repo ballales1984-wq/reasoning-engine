@@ -754,13 +754,21 @@ class ReasoningEngine:
                 if kg_result and not any(v is not None for v in kg_result.values()):
                     return "open_world"
 
-        # Riferimento al topic precedente? ("si ma chi era?", "e lui?")
-        if self._last_topic and any(
-            word in text for word in ["si", "ma", "lui", "lei", "era", "ecco", "quindi"]
+        # Riferimento al topic precedente? ("si ma chi era?", "e lui?", "e quindi?")
+        if self._last_topic and (
+            text.startswith("si")
+            or text.startswith("ma")
+            or text.startswith("e ")
+            or ("si ma" in text)
+            or ("lui era" in text)
+            or ("lei era" in text)
         ):
-            kg_result = self.knowledge.find([self._last_topic])
-            if kg_result and any(v is not None for v in kg_result.values()):
-                return "deterministic_fact"  # Rispondi dal KG sul topic noto
+            # Cerca info sul topic precedente
+            return "open_world"
+
+        # "perché?" da solo non è un luogo - è spiegazione
+        if text.strip() in {"perche", "perche?", "perché", "perché?"}:
+            return "reasoning_required"
 
         if any(
             k in text
