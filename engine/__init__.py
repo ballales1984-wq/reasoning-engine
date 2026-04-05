@@ -403,6 +403,15 @@ class ReasoningEngine:
             )
 
         # 4b.1 Fast-Path: Confronti - USA LLM per ragionare
+        # Normalizza la domanda per il confronto (senza accenti)
+        normalized_no_accent = (
+            normalized.replace("à", "a")
+            .replace("è", "e")
+            .replace("ì", "i")
+            .replace("ò", "o")
+            .replace("ù", "u")
+        )
+
         comparison_keywords = [
             "piu veloce",
             "piu grande",
@@ -410,13 +419,22 @@ class ReasoningEngine:
             "piu alto",
             "piu vecchio",
             "piu giovane",
+            "piu vecchia",
+            "piu giovani",
             "meglio",
             "confronto",
             "differenza tra",
             "chi e piu",
             "chi e il piu",
+            "chi era piu",
+            "chi e piu",
+            "chi e piu vecchio",
+            "chi e piu giovane",
+            "chi era piu vecchio",
         ]
-        has_comparison_keyword = any(kw in normalized for kw in comparison_keywords)
+        has_comparison_keyword = any(
+            kw in normalized_no_accent for kw in comparison_keywords
+        )
 
         if has_comparison_keyword:
             # ESTRAI LE DUE ENTITÀ DA CONFRONTARE
