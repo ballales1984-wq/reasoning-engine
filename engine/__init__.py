@@ -1273,42 +1273,23 @@ class ReasoningEngine:
                 comp_type = typ
                 break
 
-        prompt = f"""Confronta {entity1} e {entity2} in base a {comp_type}.
-        
-Domanda originale: chi è più vecchio tra {entity1} e {entity2}?
-
-Istruzioni:
-1. Determina quale dei due ha la caratteristica richiesta (più vecchio, più veloce, ecc.)
-2. Fornisci una risposta chiara e diretta
-3. Spiega brevemente il perché
-
-Rispondi in italiano con questo formato JSON:
-{
-            "vincitore": "nome dell'entità vincitrice",
-    "risposta": "breve risposta diretta",
-    "spiegazione": "perché è vincitore (1-2 frasi)"
-}
-
-Rispondi SOLO con JSON."""
+        # Prompt semplice che non richiede JSON
+        prompt = f"""Confronta {entity1} e {entity2} per "{comp_type}".
+Chi è più {comp_type}? Rispondi in 1-2 frasi in italiano."""
 
         system = (
-            "Sei un assistente che fa confronti precisi. Rispondi sempre in italiano."
+            "Sei un assistente che fa confronti. Rispondi in modo chiaro e diretto."
         )
 
         try:
-            raw = self.llm.llm.ask(prompt, system=system, max_tokens=300)
+            # Chiama direttamente l'LLM senza passare per bridge
+            raw = self.llm.llm.ask(prompt, system=system, max_tokens=200)
+            print(f"[DEBUG _llm_compare] Raw LLM response: {raw[:200]}")
 
-            # Parsa JSON
-            import json
+            # Usa la risposta direttamente
+            answer = raw.strip() if raw else None
 
-            json_match = re.search(r"\{[^{}]*\}", raw, re.DOTALL)
-            if json_match:
-                data = json.loads(json_match.group())
-                answer = data.get(
-                    "risposta", f"{data.get('vincitore', entity1)} è il più indicato"
-                )
-                explanation = data.get("spiegazione", "")
-
+            if answer and not answer.startswith("Error") and len(answer) > 10:
                 return ReasoningResult(
                     answer=answer,
                     confidence=0.90,
@@ -1318,14 +1299,17 @@ Rispondi SOLO con JSON."""
                             type="llm_comparison",
                             description=f"Confronto LLM: {entity1} vs {entity2}",
                             input=f"{entity1} vs {entity2}",
-                            output=data,
-                            channel=self.llm.llm.provider,
+                            output={"entity1": entity1, "entity2": entity2},
+                            channel="llm",
                         )
                     ],
-                    explanation=f"Confronto basato su ragionamento LLM: {explanation}",
+                    explanation=f"Confronto basato su ragionamento LLM",
                     llm_used=True,
                 )
-        except Exception as e:
-            pass
+            else:
+                print(f"[DEBUG _llm_compare] LLM returned invalid response")
+                return None
 
-        return None
+        except Exception as e:
+            print(f"[DEBUG _llm_compare] Exception: {e}")
+            return None
