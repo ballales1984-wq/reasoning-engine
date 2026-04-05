@@ -414,8 +414,8 @@ class ReasoningEngine:
         ]
         has_comparison_keyword = any(kw in normalized for kw in comparison_keywords)
 
-        if has_comparison_keyword and "open_world" not in route_mode:
-            # Forza open_world per confronti - e VA DIRETTAMENTE A WEB SEARCH
+        if has_comparison_keyword:
+            # PER CONFRONTI: salta tutto il resto e VA DIRETTAMENTE A WEB SEARCH
             # Estrai entrambe le entity per confronto esplicito
             import re
 
