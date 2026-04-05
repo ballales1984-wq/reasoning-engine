@@ -410,6 +410,7 @@ class ReasoningEngine:
             .replace("ì", "i")
             .replace("ò", "o")
             .replace("ù", "u")
+            .replace("'", " ")
         )
 
         comparison_keywords = [
@@ -427,18 +428,21 @@ class ReasoningEngine:
             "chi e piu",
             "chi e il piu",
             "chi era piu",
-            "chi e piu",
             "chi e piu vecchio",
             "chi e piu giovane",
             "chi era piu vecchio",
+            "chi e piu veloce",
+            "chi e piu grande",
         ]
         has_comparison_keyword = any(
             kw in normalized_no_accent for kw in comparison_keywords
         )
 
         if has_comparison_keyword:
-            # ESTRAI LE DUE ENTITÀ DA CONFRONTARE
-            entities_found = self._extract_comparison_entities(question)
+            # ESTRAI LE DUE ENTITÀ DA CONFRONTARE (usa versione normalizzata)
+            entities_found = self._extract_comparison_entities(normalized_no_accent)
+
+            print(f"[DEBUG] Comparison detected, entities: {entities_found}")
 
             if entities_found and len(entities_found) >= 2:
                 # USA LLM PER IL CONFRONTO
@@ -1113,25 +1117,28 @@ class ReasoningEngine:
 
         return None
 
-    def _extract_comparison_entities(self, question: str) -> list[str]:
+    def _extract_comparison_entities(self, text: str) -> list[str]:
         """Estrae le due entità da confrontare dalla domanda."""
-        normalized = question.lower()
+        # Usa il testo originale per trovare maiuscole
+        text_input = text
 
-        # Rimpiazza accenti con versioni senza accento
+        # Normalizza per i pattern
         normalized = (
-            normalized.replace("à", "a")
+            text.lower()
+            .replace("à", "a")
             .replace("è", "e")
             .replace("ì", "i")
             .replace("ò", "o")
             .replace("ù", "u")
+            .replace("'", " ")
         )
 
         # Pattern per "chi è più X tra A e B" o "confronto tra A e B"
         patterns = [
-            r"tra\s+([a-zà-ÿ\s]+?)\s+e\s+([a-zà-ÿ\s]+?)(?:\s+[\?\!]|$)",
-            r"tra\s+([a-zà-ÿ\s]+?)\s+ed\s+([a-zà-ÿ\s]+?)(?:\s+[\?\!]|$)",
-            r"chi\s+(?:è|sono)\s+(?:piu|più|il\s+piu)\s+\w+\s+(?:tra|tra\s+)?([a-zà-ÿ\s]+?)\s+e\s+([a-zà-ÿ\s]+?)(?:\s+[\?\!]|$)",
-            r"confronto\s+(?:tra|fra)?\s+([a-zà-ÿ\s]+?)\s+e\s+([a-zà-ÿ\s]+?)(?:\s+[\?\!]|$)",
+            r"tra\s+([a-z\s]+)\s+e\s+([a-z\s]+)(?:\s*[\?\!]|$)",
+            r"tra\s+([a-z\s]+)\s+ed\s+([a-z\s]+)(?:\s*[\?\!]|$)",
+            r"chi\s+\w+\s+\w+\s+\w+\s+(?:tra\s+)?([a-z\s]+)\s+e\s+([a-z\s]+)(?:\s*[\?\!]|$)",
+            r"confronto\s+(?:tra|fra)?\s+([a-z\s]+)\s+e\s+([a-z\s]+)(?:\s*[\?\!]|$)",
         ]
 
         for pattern in patterns:
@@ -1140,7 +1147,6 @@ class ReasoningEngine:
                 e1 = m.group(1).strip()
                 e2 = m.group(2).strip()
                 if e1 and e2 and len(e1) > 1 and len(e2) > 1:
-                    # Filtra parole non entità
                     stopwords = {
                         "il",
                         "lo",
@@ -1170,19 +1176,14 @@ class ReasoningEngine:
                         "sono",
                         "è",
                         "e'",
-                        "più",
                         "rispetto",
-                        "tra",
-                        "confronto",
                         "differenza",
                     }
                     e1_clean = e1.lower().strip()
                     e2_clean = e2.lower().strip()
 
-                    # Accetta solo se sono almeno 2 caratteri e non sono stopwords
                     if len(e1_clean) >= 2 and len(e2_clean) >= 2:
                         if e1_clean not in stopwords and e2_clean not in stopwords:
-                            # Capitalizza correttamente (ogni parola)
                             e1_title = " ".join(
                                 word.capitalize() for word in e1.split()
                             )
@@ -1191,34 +1192,43 @@ class ReasoningEngine:
                             )
                             return [e1_title, e2_title]
 
-        # FALLBACK: estrai parole che iniziano con maiuscola (se presenti) o nomi propri
-        import re
-
-        # Cerca parole che sembrano nomi propri (iniziano con maiuscola dopo spaazi)
-        matches = re.findall(r"(?:^|\s)([A-ZÀ-ÖØ-öø-ÿ][a-zà-ÿ]+)", question)
+        # FALLBACK: estrai parole che iniziano con maiuscola (nomi propri)
+        matches = re.findall(r"(?:^|\s)([A-ZÀ-ÖØ-öø-ÿ][a-zà-ÿ]+)", text_input)
         if len(matches) >= 2:
+            # Filtra le prime due che sono le entità (esclude "Chi")
+            filtered = [
+                m for m in matches if m.lower() not in ["chi", "cosa", "qual", "come"]
+            ]
+            if len(filtered) >= 2:
+                return [filtered[0], filtered[1]]
             return [matches[0], matches[1]]
 
         # Ultimo fallback: prendi parole lunghe > 3 come entità
-        words = question.split()
+        words = text_input.split()
         entities = []
+        stopwords_all = {
+            "il",
+            "lo",
+            "la",
+            "un",
+            "una",
+            "di",
+            "da",
+            "che",
+            "cosa",
+            "qual",
+            "questo",
+            "quello",
+            "chi",
+            "come",
+            "dove",
+            "quando",
+            "perché",
+        }
         for w in words:
             clean = w.strip("?!.,;:").lower()
-            if (
-                len(clean) > 3
-                and clean not in stopwords
-                and not any(c in clean for c in "àèìòù")
-            ):
-                if clean not in [
-                    "cosa",
-                    "quale",
-                    "quali",
-                    "come",
-                    "dove",
-                    "quando",
-                    "perché",
-                ]:
-                    entities.append(w.strip("?!.,;:"))
+            if len(clean) > 3 and clean not in stopwords_all:
+                entities.append(w.strip("?!.,;:"))
             if len(entities) >= 2:
                 break
 
