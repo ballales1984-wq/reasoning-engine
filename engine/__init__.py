@@ -447,19 +447,23 @@ class ReasoningEngine:
             print(f"[DEBUG] Entities found: {entities_found}")
 
             if entities_found and len(entities_found) >= 2:
-                print(f"[DEBUG] LLM available: {self.llm.is_available()}")
+                print(f"[DEBUG] Trying comparison: {entities_found}")
 
                 # USA LLM PER IL CONFRONTO
                 if self.llm.is_available():
+                    print(f"[DEBUG] LLM available, calling _llm_compare")
                     comparison_result = self._llm_compare(
                         entities_found[0], entities_found[1], comparison_type=normalized
                     )
                     if comparison_result:
+                        print(f"[DEBUG] LLM comparison succeeded")
                         return comparison_result
                     else:
                         print(f"[DEBUG] _llm_compare returned None")
+                else:
+                    print(f"[DEBUG] LLM NOT available")
 
-            # Fallback: prova web solo se LLM non disponibile
+            # Fallback: prova web
             web_res = self.web.search_and_summarize(question)
             summary = self._clean_web_summary(str(web_res.get("summary", "") or ""))
             if (
@@ -1244,8 +1248,13 @@ class ReasoningEngine:
         self, entity1: str, entity2: str, comparison_type: str = ""
     ) -> ReasoningResult | None:
         """Usa LLM per confrontare due entità."""
+        print(f"[DEBUG _llm_compare] Starting: {entity1} vs {entity2}")
+
         if not self.llm.is_available():
+            print(f"[DEBUG _llm_compare] LLM NOT available")
             return None
+
+        print(f"[DEBUG _llm_compare] LLM available, calling LLM...")
 
         # Determina il tipo di confronto
         comparison_types = {
