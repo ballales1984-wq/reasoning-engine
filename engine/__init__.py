@@ -416,11 +416,32 @@ class ReasoningEngine:
 
         if has_comparison_keyword and "open_world" not in route_mode:
             # Forza open_world per confronti - e VA DIRETTAMENTE A WEB SEARCH
-            route_mode = "open_world"
-            parsed_dict["route_mode"] = route_mode
+            # Estrai entrambe le entity per confronto esplicito
+            import re
 
-            # Cerca su web direttamente per confronti
-            web_res = self.web.search_and_summarize(question)
+            animali = [
+                "gatto",
+                "cane",
+                "cavallo",
+                "pesce",
+                "leone",
+                "tigrettop",
+                "uomo",
+                "persona",
+                "elefante",
+                "leopardo",
+            ]
+            entities_found = [e for e in animali if e in normalized]
+
+            if len(entities_found) >= 2:
+                # Costruisci query di confronto esplicito
+                comparison_query = (
+                    f"confronto velocita {entities_found[0]} vs {entities_found[1]}"
+                )
+                web_res = self.web.search_and_summarize(comparison_query)
+            else:
+                web_res = self.web.search_and_summarize(question)
+
             summary = self._clean_web_summary(str(web_res.get("summary", "") or ""))
             if (
                 web_res.get("success")
@@ -440,7 +461,7 @@ class ReasoningEngine:
                             channel="web_search",
                         )
                     ],
-                    explanation="Risposta a confronto da ricerca web.",
+                    explanation=f"Risposta a confronto tra {entities_found} da ricerca web.",
                     verified=False,
                 )
 
