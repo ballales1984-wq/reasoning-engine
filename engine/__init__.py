@@ -402,6 +402,48 @@ class ReasoningEngine:
                 verified=True,
             )
 
+        # 4b.1 Fast-Path: Confronti ("chi è più veloce?", "differenza tra X e Y?")
+        comparison_patterns = [
+            r"chi\s+(?:è|e)(?:o|.)\s+piu\s+(veloce|grande|forte|veloce|alto|piccolo)",
+            r"(?:differenza|confronto)\s+tra\s+(.+?)\s+e\s+(.+)",
+            r"meglio\s+(.+?)\s+o\s+(.+)",
+            r"quale\s+(?:è|piu)\s+(.+?)\s+(.+?)\s+tra\s+(.+)",
+        ]
+        is_comparison = any(re.search(p, normalized) for p in comparison_patterns)
+
+        if is_comparison and "open_world" in route_mode:
+            # Per confronti, usa web search diretto
+            question_for_search = question
+            # Trasforma in query cercabile
+            question_for_search = re.sub(
+                r"chi\s+(?:è|e)\s+piu", "confronto", question_for_search
+            )
+            question_for_search = re.sub(r"(gatto|cane)", r"\g<1>", question_for_search)
+            # Vai direttamente a web search
+            web_res = self.web.search_and_summarize(question_for_search)
+            summary = self._clean_web_summary(str(web_res.get("summary", "") or ""))
+            if (
+                web_res.get("success")
+                and summary
+                and summary != "Nessun risultato trovato."
+            ):
+                return ReasoningResult(
+                    answer=summary,
+                    confidence=0.85,
+                    reasoning_type="comparison",
+                    steps=[
+                        ReasoningStep(
+                            type="comparison",
+                            description="Confronto diretto via web",
+                            input=question,
+                            output={"sources": web_res.get("sources", [])},
+                            channel="web_search",
+                        )
+                    ],
+                    explanation="Risposta a confronto da ricerca web.",
+                    verified=False,
+                )
+
         # 4c. Fast-Path: Ragionamento Deduttivo (sillogismi e logica)
         # Pattern: "Se tutti gli X sono Y, e Z è X, allora Z è Y"
         #          "Se A allora B, e A, quindi B"
