@@ -402,6 +402,23 @@ class ReasoningEngine:
                 verified=True,
             )
 
+        # 4c. Fast-Path: Ragionamento Deduttivo (sillogismi e logica)
+        # Pattern: "Se tutti gli X sono Y, e Z è X, allora Z è Y"
+        #          "Se A allora B, e A, quindi B"
+        logical_patterns = [
+            r"se\s+tutti\s+(?:gli\s+)?(\w+)\s+(?:sono|sono\s+dei)\s+(\w+)",
+            r"se\s+(.+)\s+allora\s+(.+)",
+            r"se\s+(.+)\s+e\s+(.+)\s+allora\s+(.+)",
+            r"se\s+(.+)\s+(?:e|quindi)\s+(.+)\s+(?:allora|quindi)\s+(.+)",
+        ]
+        is_logical = any(re.search(p, normalized) for p in logical_patterns)
+
+        if is_logical:
+            # Prova a estrarre e risolvere il sillogismo
+            deduction_result = self._try_deductive_reasoning(question, parsed_dict)
+            if deduction_result:
+                return deduction_result
+
         # 4b. Fast-Path: lookup fattuale (es. capitali) dal Knowledge Graph
         if "capitale" in normalized:
             country_name = self._extract_country_name_for_capital(question)
@@ -873,6 +890,107 @@ class ReasoningEngine:
             r"\btoday'?s\s+date\b",
         ]
         return any(re.search(p, normalized) for p in patterns)
+
+    def _try_deductive_reasoning(
+        self, question: str, parsed_dict: dict
+    ) -> ReasoningResult | None:
+        """Prova a risolvere sillogismi e deduzioni logiche."""
+        import re
+
+        normalized = question.lower()
+
+        # Pattern: "Se tutti gli X sono Y, e Z è X, allora Z è Y"
+        # Esempi: "se tutti i gatti fanno miao e fluffy è un gatto, cosa fa fluffy?"
+        syllogism = re.search(
+            r"se\s+tutti\s+(?:gli\s+)?(\w+)\s+(?:sono|fanno)\s+(\w+)\s+e\s+(\w+)\s+(?:è|e|sono)\s+(?:un\s+)?(\w+)",
+            normalized,
+        )
+        if syllogism:
+            category = syllogism.group(1)  # es: "gatti"
+            property1 = syllogism.group(2)  # es: "mammifero"
+            subject = syllogism.group(3)  # es: "fluffy"
+            subject_type = syllogism.group(4)  # es: "gatto"
+
+            # Logica: se tutti i gatti sono mammiferi e fluffy è un gatto, fluffy è un mammifero
+            # Cerca nel KG
+            subject_cap = subject.capitalize()
+            type_cap = subject_type.capitalize()
+
+            # Prova a dedurre
+            ded_result = self.deductive.deduce(subject_cap, property1)
+
+            if ded_result.found:
+                answer = f"{subject_cap} {ded_result.conclusion}"
+                return ReasoningResult(
+                    answer=answer,
+                    confidence=ded_result.confidence,
+                    reasoning_type="deductive",
+                    steps=[
+                        ReasoningStep(
+                            type="deductive",
+                            description=f"Deduzione: {subject} -> {property1}",
+                            input=question,
+                            output={"chain": [s.conclusion for s in ded_result.chain]},
+                            channel="deductive_reasoner",
+                        )
+                    ],
+                    explanation=f"Ragionamento deduttivo: {subject} è un {subject_type}, quindi è anche {property1}",
+                    verified=True,
+                )
+            else:
+                # Prova deduzione diretta
+                ded_result2 = self.deductive.deduce(subject_cap)
+                if ded_result2.found:
+                    answer = f"{subject_cap} {ded_result2.conclusion}"
+                    return ReasoningResult(
+                        answer=answer,
+                        confidence=ded_result2.confidence,
+                        reasoning_type="deductive",
+                        steps=[
+                            ReasoningStep(
+                                type="deductive",
+                                description=f"Deduzione su {subject}",
+                                input=question,
+                                output={
+                                    "chain": [s.conclusion for s in ded_result2.chain]
+                                },
+                                channel="deductive_reasoner",
+                            )
+                        ],
+                        explanation=f"Ragionamento deduttivo basato su: {ded_result2.conclusion}",
+                        verified=True,
+                    )
+
+        # Pattern: "Se A allora B, e A, quindi B"
+        modus_ponens = re.search(
+            r"se\s+(.+?)\s+allora\s+(.+?)\s*,\s*(?:e|quindi)\s+(.+?)\s*(?:allora|quindi)?",
+            normalized,
+        )
+        if modus_ponens:
+            premise = modus_ponens.group(1).strip()
+            conclusion = modus_ponens.group(2).strip()
+            evidence = modus_ponens.group(3).strip()
+
+            # Se la premessa è vera, la conclusione segue
+            answer = f"Se {premise}, allora {conclusion}. Quindi {conclusion}."
+            return ReasoningResult(
+                answer=answer,
+                confidence=0.9,
+                reasoning_type="deductive",
+                steps=[
+                    ReasoningStep(
+                        type="deductive",
+                        description=f"Modus Ponens: {premise} -> {conclusion}",
+                        input=question,
+                        output={"premise": premise, "conclusion": conclusion},
+                        channel="deductive_reasoner",
+                    )
+                ],
+                explanation=f"Modus Ponens: Se {premise} implica {conclusion}, e {evidence} è vero, allora {conclusion}.",
+                verified=True,
+            )
+
+        return None
 
     def _extract_country_name_for_capital(self, raw: str) -> str | None:
         """Estrae il paese da pattern comuni: 'capitale del/della X'."""
