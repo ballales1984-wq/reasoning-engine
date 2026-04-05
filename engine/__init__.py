@@ -415,9 +415,34 @@ class ReasoningEngine:
         has_comparison_keyword = any(kw in normalized for kw in comparison_keywords)
 
         if has_comparison_keyword and "open_world" not in route_mode:
-            # Forza open_world per confronti
+            # Forza open_world per confronti - e VA DIRETTAMENTE A WEB SEARCH
             route_mode = "open_world"
             parsed_dict["route_mode"] = route_mode
+
+            # Cerca su web direttamente per confronti
+            web_res = self.web.search_and_summarize(question)
+            summary = self._clean_web_summary(str(web_res.get("summary", "") or ""))
+            if (
+                web_res.get("success")
+                and summary
+                and summary != "Nessun risultato trovato."
+            ):
+                return ReasoningResult(
+                    answer=summary,
+                    confidence=0.85,
+                    reasoning_type="comparison",
+                    steps=[
+                        ReasoningStep(
+                            type="comparison",
+                            description="Confronto via web search",
+                            input=question,
+                            output={"sources": web_res.get("sources", [])},
+                            channel="web_search",
+                        )
+                    ],
+                    explanation="Risposta a confronto da ricerca web.",
+                    verified=False,
+                )
 
         # 4c. Fast-Path: Ragionamento Deduttivo (sillogismi e logica)
         # Pattern: "Se tutti gli X sono Y, e Z è X, allora Z è Y"
