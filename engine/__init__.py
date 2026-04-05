@@ -416,28 +416,20 @@ class ReasoningEngine:
 
         if has_comparison_keyword:
             # PER CONFRONTI: salta tutto il resto e VA DIRETTAMENTE A WEB SEARCH
-            # Estrai entrambe le entity per confronto esplicito
+            # Estrai NOME COGNOME per confronto (es: "Papa Leone", "Albano Carrisi")
             import re
 
-            animali = [
-                "gatto",
-                "cane",
-                "cavallo",
-                "pesce",
-                "leone",
-                "tigrettop",
-                "uomo",
-                "persona",
-                "elefante",
-                "leopardo",
-            ]
-            entities_found = [e for e in animali if e in normalized]
+            # Estrai nomi propri (2+ parole maiuscole) o frasi prima/dopo "o" o "e"
+            # Pattern: "X o Y" o "X e Y" dove X,Y sono nomi
+            or_match = re.search(
+                r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:o|e)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)",
+                question,
+            )
 
-            if len(entities_found) >= 2:
-                # Costruisci query di confronto esplicito
-                comparison_query = (
-                    f"confronto velocita {entities_found[0]} vs {entities_found[1]}"
-                )
+            if or_match:
+                entity1 = or_match.group(1)
+                entity2 = or_match.group(2)
+                comparison_query = f"confronto eta {entity1} vs {entity2}"
                 web_res = self.web.search_and_summarize(comparison_query)
             else:
                 web_res = self.web.search_and_summarize(question)
