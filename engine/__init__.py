@@ -402,51 +402,22 @@ class ReasoningEngine:
                 verified=True,
             )
 
-        # 4b.1 Fast-Path: Confronti ("chi è più veloce?", "differenza tra X e Y?")
-        comparison_patterns = [
-            r"e\s+piu\s+(veloce|grande|forte|alta|piccolo)",
-            r"chi\s+è\s+(?:piu\s+)?(veloce|grande|forte|alta|vecchia)",
-            r"(?:differenza|confronto)\s+tra\s+",
-            r"meglio\s+",
-            r"quale\s+piu\s+",
-            r"cosa\s+(?:più|piu)\s+(meglio|veloce|forte)",
-            r"confronto\s+tra\s+",
-            r"quale\s+(?:è|piu)\s+(meglio|veloce)",
+        # 4b.1 Fast-Path: Confronti - PRIMA del KG/Lookup per evitare conflitti
+        comparison_keywords = [
+            "piu veloce",
+            "piu grande",
+            "piu forte",
+            "piu alto",
+            "meglio",
+            "confronto",
+            "differenza tra",
         ]
-        is_comparison = any(re.search(p, normalized) for p in comparison_patterns)
+        has_comparison_keyword = any(kw in normalized for kw in comparison_keywords)
 
-        if is_comparison:
-            # Per confronti, usa web search diretto
-            question_for_search = question
-            # Trasforma in query cercabile
-            question_for_search = re.sub(
-                r"chi\s+(?:è|e)\s+piu", "confronto", question_for_search
-            )
-            question_for_search = re.sub(r"(gatto|cane)", r"\g<1>", question_for_search)
-            # Vai direttamente a web search
-            web_res = self.web.search_and_summarize(question_for_search)
-            summary = self._clean_web_summary(str(web_res.get("summary", "") or ""))
-            if (
-                web_res.get("success")
-                and summary
-                and summary != "Nessun risultato trovato."
-            ):
-                return ReasoningResult(
-                    answer=summary,
-                    confidence=0.85,
-                    reasoning_type="comparison",
-                    steps=[
-                        ReasoningStep(
-                            type="comparison",
-                            description="Confronto diretto via web",
-                            input=question,
-                            output={"sources": web_res.get("sources", [])},
-                            channel="web_search",
-                        )
-                    ],
-                    explanation="Risposta a confronto da ricerca web.",
-                    verified=False,
-                )
+        if has_comparison_keyword and "open_world" not in route_mode:
+            # Forza open_world per confronti
+            route_mode = "open_world"
+            parsed_dict["route_mode"] = route_mode
 
         # 4c. Fast-Path: Ragionamento Deduttivo (sillogismi e logica)
         # Pattern: "Se tutti gli X sono Y, e Z è X, allora Z è Y"
