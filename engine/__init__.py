@@ -429,7 +429,8 @@ class ReasoningEngine:
             if or_match:
                 entity1 = or_match.group(1)
                 entity2 = or_match.group(2)
-                comparison_query = f"confronto eta {entity1} vs {entity2}"
+                # CHIEDI DIRETTAMENTE chi è più vecchio
+                comparison_query = f"chi e piu vecchio tra {entity1} e {entity2}? rispondi con nome e quanti anni ha"
                 web_res = self.web.search_and_summarize(comparison_query)
             else:
                 web_res = self.web.search_and_summarize(question)
