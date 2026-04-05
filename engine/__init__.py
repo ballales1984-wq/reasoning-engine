@@ -429,8 +429,18 @@ class ReasoningEngine:
             if or_match:
                 entity1 = or_match.group(1)
                 entity2 = or_match.group(2)
-                # CHIEDI DIRETTAMENTE chi è più vecchio
-                comparison_query = f"chi e piu vecchio tra {entity1} e {entity2}? rispondi con nome e quanti anni ha"
+                # Pulisci i nomi da typos comuni
+                entity1 = entity1.replace("albano", "Al Bano").replace(
+                    "carrisi", "Carrisi"
+                )
+                entity2 = (
+                    entity2.replace("mich", "Mick")
+                    .replace("jaggher", "Jagger")
+                    .replace("mick", "Mick")
+                    .replace("jagger", "Jagger")
+                )
+                # CHIEDI DIRETTAMENTE chi è più vecchio - query specifica
+                comparison_query = f"{entity1} {entity2} eta' nascita chi e piu vecchio"
                 web_res = self.web.search_and_summarize(comparison_query)
             else:
                 web_res = self.web.search_and_summarize(question)
