@@ -447,10 +447,8 @@ class ReasoningEngine:
             print(f"[DEBUG] Entities found: {entities_found}")
 
             if entities_found and len(entities_found) >= 2:
-
-            if entities_found and len(entities_found) >= 2:
                 print(f"[DEBUG] LLM available: {self.llm.is_available()}")
-                
+
                 # USA LLM PER IL CONFRONTO
                 if self.llm.is_available():
                     comparison_result = self._llm_compare(
