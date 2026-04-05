@@ -32,14 +32,22 @@ class MemoryTool:
         os.makedirs(self.upload_dir, exist_ok=True)
 
         self.st_model = None
+        self._st_loaded = False
+
+    def _ensure_st_model(self):
+        """Lazy load sentence-transformers only when needed."""
+        if self._st_loaded:
+            return
         if ST_AVAILABLE:
             try:
                 self.st_model = SentenceTransformer("all-MiniLM-L6-v2")
             except Exception:
                 pass
+        self._st_loaded = True
 
     def _compute_embedding_st(self, text: str) -> List[float]:
         """Compute embedding using sentence-transformers."""
+        self._ensure_st_model()
         if self.st_model is None:
             return None
         try:

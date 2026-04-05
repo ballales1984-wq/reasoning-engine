@@ -402,22 +402,37 @@ class ReasoningEngine:
                 verified=True,
             )
 
-        # 4b.1 Fast-Path: Confronti - PRIMA del KG/Lookup per evitare conflitti
+        # 4b.1 Fast-Path: Confronti - USA LLM per ragionare
         comparison_keywords = [
             "piu veloce",
             "piu grande",
             "piu forte",
             "piu alto",
+            "piu vecchio",
+            "piu giovane",
             "meglio",
             "confronto",
             "differenza tra",
+            "chi e piu",
+            "chi e il piu",
         ]
         has_comparison_keyword = any(kw in normalized for kw in comparison_keywords)
 
         if has_comparison_keyword:
-            # PER CONFRONTI: cerca su web direttamente con la domanda originale
-            web_res = self.web.search_and_summarize(question)
+            # ESTRAI LE DUE ENTITÀ DA CONFRONTARE
+            entities_found = self._extract_comparison_entities(question)
 
+            if entities_found and len(entities_found) >= 2:
+                # USA LLM PER IL CONFRONTO
+                if self.llm.is_available():
+                    comparison_result = self._llm_compare(
+                        entities_found[0], entities_found[1], comparison_type=normalized
+                    )
+                    if comparison_result:
+                        return comparison_result
+
+            # Fallback: prova web solo se LLM non disponibile
+            web_res = self.web.search_and_summarize(question)
             summary = self._clean_web_summary(str(web_res.get("summary", "") or ""))
             if (
                 web_res.get("success")
@@ -431,13 +446,13 @@ class ReasoningEngine:
                     steps=[
                         ReasoningStep(
                             type="comparison",
-                            description="Confronto via web search",
+                            description="Confronto via web",
                             input=question,
-                            output={"sources": web_res.get("sources", [])},
+                            output={"entities": entities_found},
                             channel="web_search",
                         )
                     ],
-                    explanation=f"Risposta a confronto tra {entities_found} da ricerca web.",
+                    explanation=f"Confronto tra {entities_found[0]} e {entities_found[1]}",
                     verified=False,
                 )
 
@@ -1077,5 +1092,124 @@ class ReasoningEngine:
                     explanation="Risposta da Question-Based Reasoner.",
                     verified=False,
                 )
+
+        return None
+
+    def _extract_comparison_entities(self, question: str) -> list[str]:
+        """Estrae le due entità da confrontare dalla domanda."""
+        normalized = question.lower()
+
+        # Pattern per "chi è più X tra A e B" o "confronto tra A e B"
+        patterns = [
+            r"tra\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\s+e\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:\s+[\?\!]|$)",
+            r"tra\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\s+ed\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:\s+[\?\!]|$)",
+            r"chi\s+(?:è|sono)\s+(?:piu|il\s+piu)\s+\w+\s+(?:tra|tra\s+)?([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\s+e\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:\s+[\?\!]|$)",
+            r"confronto\s+(?:tra|fra)?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\s+e\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:\s+[\?\!]|$)",
+        ]
+
+        for pattern in patterns:
+            m = re.search(pattern, normalized)
+            if m:
+                e1 = m.group(1).strip()
+                e2 = m.group(2).strip()
+                if e1 and e2 and len(e1) > 1 and len(e2) > 1:
+                    # Filtra parole non entità
+                    stopwords = {
+                        "il",
+                        "lo",
+                        "la",
+                        "un",
+                        "una",
+                        "di",
+                        "da",
+                        "che",
+                        "cosa",
+                        "qual",
+                        "questo",
+                        "quello",
+                    }
+                    if e1.lower() not in stopwords and e2.lower() not in stopwords:
+                        return [e1.title(), e2.title()]
+
+        return []
+
+    def _llm_compare(
+        self, entity1: str, entity2: str, comparison_type: str = ""
+    ) -> ReasoningResult | None:
+        """Usa LLM per confrontare due entità."""
+        if not self.llm.is_available():
+            return None
+
+        # Determina il tipo di confronto
+        comparison_types = {
+            "piu veloce": "velocità",
+            "piu vecchio": "età/anagrafica",
+            "piu giovane": "età/anagrafica",
+            "piu grande": "dimensione",
+            "piu forte": "forza",
+            "piu alto": "altezza",
+            "meglio": "qualità generale",
+        }
+
+        comp_type = "caratteristica richiesta"
+        for kw, typ in comparison_types.items():
+            if kw in comparison_type:
+                comp_type = typ
+                break
+
+        prompt = f"""Confronta {entity1} e {entity2} in base a {comp_type}.
+        
+Domanda originale: chi è più vecchio tra {entity1} e {entity2}?
+
+Istruzioni:
+1. Determina quale dei due ha la caratteristica richiesta (più vecchio, più veloce, ecc.)
+2. Fornisci una risposta chiara e diretta
+3. Spiega brevemente il perché
+
+Rispondi in italiano con questo formato JSON:
+{
+            "vincitore": "nome dell'entità vincitrice",
+    "risposta": "breve risposta diretta",
+    "spiegazione": "perché è vincitore (1-2 frasi)"
+}
+
+Rispondi SOLO con JSON."""
+
+        system = (
+            "Sei un assistente che fa confronti precisi. Rispondi sempre in italiano."
+        )
+
+        try:
+            raw = self.llm.llm.ask(prompt, system=system, max_tokens=300)
+
+            # Parsa JSON
+            import json
+
+            json_match = re.search(r"\{[^{}]*\}", raw, re.DOTALL)
+            if json_match:
+                data = json.loads(json_match.group())
+                answer = data.get(
+                    "risposta", f"{data.get('vincitore', entity1)} è il più indicato"
+                )
+                explanation = data.get("spiegazione", "")
+
+                return ReasoningResult(
+                    answer=answer,
+                    confidence=0.90,
+                    reasoning_type="llm_comparison",
+                    steps=[
+                        ReasoningStep(
+                            type="llm_comparison",
+                            description=f"Confronto LLM: {entity1} vs {entity2}",
+                            input=f"{entity1} vs {entity2}",
+                            output=data,
+                            channel=self.llm.llm.provider,
+                        )
+                    ],
+                    explanation=f"Confronto basato su ragionamento LLM: {explanation}",
+                    llm_used=True,
+                )
+        except Exception as e:
+            pass
 
         return None
