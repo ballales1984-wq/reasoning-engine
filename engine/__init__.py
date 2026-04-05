@@ -438,13 +438,19 @@ class ReasoningEngine:
             kw in normalized_no_accent for kw in comparison_keywords
         )
 
-        if has_comparison_keyword:
-            # ESTRAI LE DUE ENTITÀ DA CONFRONTARE (usa versione normalizzata)
-            entities_found = self._extract_comparison_entities(normalized_no_accent)
+        print(f"[DEBUG] normalized_no_accent: '{normalized_no_accent}'")
+        print(f"[DEBUG] has_comparison_keyword: {has_comparison_keyword}")
 
-            print(f"[DEBUG] Comparison detected, entities: {entities_found}")
+        if has_comparison_keyword:
+            # ESTRAI LE DUE ENTITÀ DA CONFRONTARE
+            entities_found = self._extract_comparison_entities(question)
+            print(f"[DEBUG] Entities found: {entities_found}")
 
             if entities_found and len(entities_found) >= 2:
+
+            if entities_found and len(entities_found) >= 2:
+                print(f"[DEBUG] LLM available: {self.llm.is_available()}")
+                
                 # USA LLM PER IL CONFRONTO
                 if self.llm.is_available():
                     comparison_result = self._llm_compare(
@@ -452,6 +458,8 @@ class ReasoningEngine:
                     )
                     if comparison_result:
                         return comparison_result
+                    else:
+                        print(f"[DEBUG] _llm_compare returned None")
 
             # Fallback: prova web solo se LLM non disponibile
             web_res = self.web.search_and_summarize(question)
