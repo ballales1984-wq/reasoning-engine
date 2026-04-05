@@ -1099,12 +1099,21 @@ class ReasoningEngine:
         """Estrae le due entità da confrontare dalla domanda."""
         normalized = question.lower()
 
+        # Rimpiazza accenti con versioni senza accento
+        normalized = (
+            normalized.replace("à", "a")
+            .replace("è", "e")
+            .replace("ì", "i")
+            .replace("ò", "o")
+            .replace("ù", "u")
+        )
+
         # Pattern per "chi è più X tra A e B" o "confronto tra A e B"
         patterns = [
-            r"tra\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\s+e\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:\s+[\?\!]|$)",
-            r"tra\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\s+ed\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:\s+[\?\!]|$)",
-            r"chi\s+(?:è|sono)\s+(?:piu|il\s+piu)\s+\w+\s+(?:tra|tra\s+)?([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\s+e\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:\s+[\?\!]|$)",
-            r"confronto\s+(?:tra|fra)?\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)\s+e\s+([A-Za-zÀ-ÖØ-öø-ÿ\s]+?)(?:\s+[\?\!]|$)",
+            r"tra\s+([a-zà-ÿ\s]+?)\s+e\s+([a-zà-ÿ\s]+?)(?:\s+[\?\!]|$)",
+            r"tra\s+([a-zà-ÿ\s]+?)\s+ed\s+([a-zà-ÿ\s]+?)(?:\s+[\?\!]|$)",
+            r"chi\s+(?:è|sono)\s+(?:piu|più|il\s+piu)\s+\w+\s+(?:tra|tra\s+)?([a-zà-ÿ\s]+?)\s+e\s+([a-zà-ÿ\s]+?)(?:\s+[\?\!]|$)",
+            r"confronto\s+(?:tra|fra)?\s+([a-zà-ÿ\s]+?)\s+e\s+([a-zà-ÿ\s]+?)(?:\s+[\?\!]|$)",
         ]
 
         for pattern in patterns:
@@ -1127,11 +1136,75 @@ class ReasoningEngine:
                         "qual",
                         "questo",
                         "quello",
+                        "tra",
+                        "fra",
+                        "con",
+                        "piu",
+                        "più",
+                        "vecchio",
+                        "giovane",
+                        "veloce",
+                        "grande",
+                        "forte",
+                        "alto",
+                        "meglio",
+                        "chi",
+                        "sono",
+                        "è",
+                        "e'",
+                        "più",
+                        "rispetto",
+                        "tra",
+                        "confronto",
+                        "differenza",
                     }
-                    if e1.lower() not in stopwords and e2.lower() not in stopwords:
-                        return [e1.title(), e2.title()]
+                    e1_clean = e1.lower().strip()
+                    e2_clean = e2.lower().strip()
 
-        return []
+                    # Accetta solo se sono almeno 2 caratteri e non sono stopwords
+                    if len(e1_clean) >= 2 and len(e2_clean) >= 2:
+                        if e1_clean not in stopwords and e2_clean not in stopwords:
+                            # Capitalizza correttamente (ogni parola)
+                            e1_title = " ".join(
+                                word.capitalize() for word in e1.split()
+                            )
+                            e2_title = " ".join(
+                                word.capitalize() for word in e2.split()
+                            )
+                            return [e1_title, e2_title]
+
+        # FALLBACK: estrai parole che iniziano con maiuscola (se presenti) o nomi propri
+        import re
+
+        # Cerca parole che sembrano nomi propri (iniziano con maiuscola dopo spaazi)
+        matches = re.findall(r"(?:^|\s)([A-ZÀ-ÖØ-öø-ÿ][a-zà-ÿ]+)", question)
+        if len(matches) >= 2:
+            return [matches[0], matches[1]]
+
+        # Ultimo fallback: prendi parole lunghe > 3 come entità
+        words = question.split()
+        entities = []
+        for w in words:
+            clean = w.strip("?!.,;:").lower()
+            if (
+                len(clean) > 3
+                and clean not in stopwords
+                and not any(c in clean for c in "àèìòù")
+            ):
+                if clean not in [
+                    "cosa",
+                    "quale",
+                    "quali",
+                    "come",
+                    "dove",
+                    "quando",
+                    "perché",
+                ]:
+                    entities.append(w.strip("?!.,;:"))
+            if len(entities) >= 2:
+                break
+
+        return entities[:2] if entities else []
 
     def _llm_compare(
         self, entity1: str, entity2: str, comparison_type: str = ""
