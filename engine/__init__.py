@@ -404,14 +404,18 @@ class ReasoningEngine:
 
         # 4b.1 Fast-Path: Confronti ("chi è più veloce?", "differenza tra X e Y?")
         comparison_patterns = [
-            r"chi\s+(?:è|e)(?:o|.)\s+piu\s+(veloce|grande|forte|veloce|alto|piccolo)",
-            r"(?:differenza|confronto)\s+tra\s+(.+?)\s+e\s+(.+)",
-            r"meglio\s+(.+?)\s+o\s+(.+)",
-            r"quale\s+(?:è|piu)\s+(.+?)\s+(.+?)\s+tra\s+(.+)",
+            r"e\s+piu\s+(veloce|grande|forte|alta|piccolo)",
+            r"chi\s+è\s+(?:piu\s+)?(veloce|grande|forte|alta|vecchia)",
+            r"(?:differenza|confronto)\s+tra\s+",
+            r"meglio\s+",
+            r"quale\s+piu\s+",
+            r"cosa\s+(?:più|piu)\s+(meglio|veloce|forte)",
+            r"confronto\s+tra\s+",
+            r"quale\s+(?:è|piu)\s+(meglio|veloce)",
         ]
         is_comparison = any(re.search(p, normalized) for p in comparison_patterns)
 
-        if is_comparison and "open_world" in route_mode:
+        if is_comparison:
             # Per confronti, usa web search diretto
             question_for_search = question
             # Trasforma in query cercabile
