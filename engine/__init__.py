@@ -415,35 +415,8 @@ class ReasoningEngine:
         has_comparison_keyword = any(kw in normalized for kw in comparison_keywords)
 
         if has_comparison_keyword:
-            # PER CONFRONTI: salta tutto il resto e VA DIRETTAMENTE A WEB SEARCH
-            # Estrai NOME COGNOME per confronto (es: "Papa Leone", "Albano Carrisi")
-            import re
-
-            # Estrai nomi propri (2+ parole maiuscole) o frasi prima/dopo "o" o "e"
-            # Pattern: "X o Y" o "X e Y" dove X,Y sono nomi
-            or_match = re.search(
-                r"([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\s+(?:o|e)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)",
-                question,
-            )
-
-            if or_match:
-                entity1 = or_match.group(1)
-                entity2 = or_match.group(2)
-                # Pulisci i nomi da typos comuni
-                entity1 = entity1.replace("albano", "Al Bano").replace(
-                    "carrisi", "Carrisi"
-                )
-                entity2 = (
-                    entity2.replace("mich", "Mick")
-                    .replace("jaggher", "Jagger")
-                    .replace("mick", "Mick")
-                    .replace("jagger", "Jagger")
-                )
-                # CHIEDI DIRETTAMENTE chi è più vecchio - query specifica
-                comparison_query = f"{entity1} {entity2} eta' nascita chi e piu vecchio"
-                web_res = self.web.search_and_summarize(comparison_query)
-            else:
-                web_res = self.web.search_and_summarize(question)
+            # PER CONFRONTI: cerca su web direttamente con la domanda originale
+            web_res = self.web.search_and_summarize(question)
 
             summary = self._clean_web_summary(str(web_res.get("summary", "") or ""))
             if (
