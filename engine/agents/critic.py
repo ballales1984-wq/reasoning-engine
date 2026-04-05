@@ -243,8 +243,8 @@ class CriticAgent(BaseAgent):
     Agente specializzato nel trovare errori e allucinazioni.
     """
 
-    PERTINENCE_THRESHOLD = 0.25
-    GROUNDING_THRESHOLD = 0.15
+    PERTINENCE_THRESHOLD = 0.15
+    GROUNDING_THRESHOLD = 0.10
     MIN_ANSWER_LENGTH = 15
 
     def __init__(self, engine=None):

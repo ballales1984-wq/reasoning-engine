@@ -121,19 +121,7 @@ function addMsg(html, cls) {
 function renderBotMsg(data) {
   let html = data.answer || "Non ho trovato una risposta.";
 
-  if (data.steps && data.steps.length > 0) {
-    html += '<div class="steps">';
-    data.steps.forEach(s => {
-      html += `<div class="step">- ${s.description}</div>`;
-    });
-    html += '</div>';
-  }
-
-  html += `<div class="meta">Tipo: ${data.reasoning_type} | Confidenza: ${(data.confidence * 100).toFixed(0)}% | Verificato: ${data.verified ? "Si" : "No"}</div>`;
-
-  if (data.explanation) {
-    html += `<div class="explanation">${data.explanation}</div>`;
-  }
+  html += `<div class="meta">${data.reasoning_type} · ${(data.confidence * 100).toFixed(0)}%</div>`;
 
   addMsg(html, "bot");
 }

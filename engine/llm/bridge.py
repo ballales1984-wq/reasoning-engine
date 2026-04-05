@@ -172,6 +172,8 @@ class LLMBridge:
 
     def is_available(self) -> bool:
         """Verifica se l'LLM è disponibile."""
+        if self.llm.provider == "ollama":
+            return True  # Ollama locale non richiede API key
         return self.llm.is_configured()
 
     # ============================================================

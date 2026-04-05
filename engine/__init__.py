@@ -45,8 +45,8 @@ class ReasoningEngine:
     Il cervello principale. Coordina tutti i componenti e il team di agenti Multi-Agent.
     """
 
-    WEB_FALLBACK_MIN_PERTINENCE = 0.30
-    LLM_FALLBACK_MIN_CONFIDENCE = 0.50
+    WEB_FALLBACK_MIN_PERTINENCE = 0.15
+    LLM_FALLBACK_MIN_CONFIDENCE = 0.30
     MAX_WEB_FALLBACKS = 2
 
     def __init__(
